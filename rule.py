@@ -12,9 +12,9 @@ def zeros(n):
     return (0 for i in range(n))
 
 class Range:
-    def __init__(self, b):
-        self.h = 0
-        self.l = 0
+    def __init__(self, b=32, h=0, l=0):
+        self.h = h
+        self.l = l
         self.bits = b
 
     def __repr__(self):
@@ -31,6 +31,57 @@ class Range:
             return True
         else:
             return False
+
+    def within(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        if other.l <= self.l and other.h >= self.h:
+            return True
+        else:
+            return False
+
+    def minus(self, other):
+        ret = []
+        if not isinstance(other, self.__class__):
+            return None
+        if self.l < other.l:
+            ret.append(Range(l=self.l, h = min(self.h, other.l -1)))
+            if self.h > other.h:
+                ret.append(Range(l=other.l+1, h = self.h))
+        else:
+            if other.h < self.h:
+                ret.append(Range(l=max(self.l, other.h+1), h= self.h))
+            else:
+                ret= []
+
+        return ret
+
+    def __cmp__(self, other):
+        if self.l < other.l:
+            return -1
+        if self.l > other.l:
+            return 1
+        if self.l ==  other.l:
+            return 0
+
+    def __hash__(self):
+        return hash(self.l) ^ hash(self.h)
+
+    def insect(self, other):
+        if not isinstance(other, self.__class__):
+            return None
+        if self.l <= other.l:
+            if other.l <= self.h:
+                ret = Range(l=other.l, h=min(self.h,other.h))
+                return ret
+            else:
+                return None
+        else:
+            if other.h >= self.l:
+                ret = Range(l=self.l, h = min(self.h, other.h))
+                return ret
+            else:
+                return None
 
 
 
@@ -181,7 +232,13 @@ def load_ruleset(path):
 
 if __name__ == "__main__":
     pc = load_ruleset(sys.argv[1])
-    print pc
+    #r1 = Range(l=6,h=11)
+    #r2 = Range(l=6,h=10)
+    #r3 = r1.minus(r2)
+
+
+    #r3 = r1.insect(r2)
+    #print r3
 
 
 
