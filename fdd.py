@@ -63,16 +63,25 @@ class FDD:
 
     def build_interval(self, rset):
         rl = list(set(rset))
+        #print rl
         retl = [rl[0]]
 
         for r in rl[1:]:
             minus = rset_minus(r, retl)
             aux_insects = []
+            #if r.h ==1358954495:
+            #    print retl
+
             for ri in range(len(retl)):
-                insect = retl[ri].insect(r)
-                if insect != retl[ri] and insect != None:
-                    retl[ri] = retl[ri].minus(r)[0]
-                    aux_insects.append(insect)
+                if not retl[ri].within(r):
+                    insect = retl[ri].insect(r)
+                    if insect != None:
+                        t = retl[ri].minus(r)
+                        #print "t", t
+                        retl[ri] = t[0]
+                        if len(t) != 1:
+                            aux_insects.append(t[1])
+                        aux_insects.append(insect)
 
             if len(aux_insects) != 0:
                 retl.extend(aux_insects)
@@ -84,14 +93,14 @@ class FDD:
 
     def build_bms(self, i, rset, bms):
         """ i is the interval"""
-        t = [(r.l, r.h) for r in rset]
+        #t = [(r.l, r.h) for r in rset]
 
         tnum = 0
         for atomic in i:
             bitmap = Bitmap(len(rset))
             num = 0
-            for r in t:
-                if r[0] <= atomic.l and r[1] >= atomic.h:
+            for r in rset:
+                if atomic.within(r):
                     bitmap.setbit(num)
                 else:
                     bitmap.clearbit(num)
@@ -120,6 +129,9 @@ class FDD:
     def isomorphic(self, level):
         pass
 
+    def fdd_match(self, trace):
+        pass
+
     def build_fdd(self, pc):
         self.root.pc = pc
         thislevel = [self.root]
@@ -127,14 +139,20 @@ class FDD:
         bms = {}
 
         for dim in self.order:
+            nodecnt = 0
+            edgecnt = 0
             for node in thislevel:
-                nodecnt = 0
-                edgecnt = 0
                 node.dim = dim
                 rs = [x[dim].r for x in node.pc]
-                #print rs
+                #if dim==4:
+                    #if rule.Range(l=0,h=255) not in rs:
+                    #    print rs
+
                 i = self.build_interval(rs)
-                #print i
+                #if dim == 4:
+                    #print node.pc
+                    #print i
+                #print len(i)
                 self.build_bms(i, rs, bms)
 
 
@@ -153,7 +171,6 @@ class FDD:
                 del bms
                 bms = {}
 
-            #TO: an isomorphic code here
 
             del thislevel
             print "finish", dim
@@ -162,6 +179,7 @@ class FDD:
             thislevel = nextlevel
             nextlevel = []
 
+        #TO: an isomorphic code here
 
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
@@ -169,7 +187,7 @@ if __name__ == "__main__":
 
     order=[0,1,2,3,4]
     f = FDD(order)
-    f.build_fdd(pc)
+    f.build_fdd(pc[0:len(pc)-1])
 
     #for i in f.root.edgeset:
     #    print i.rangeset

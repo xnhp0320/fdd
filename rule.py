@@ -47,7 +47,7 @@ class Range:
         if self.l < other.l:
             ret.append(Range(l=self.l, h = min(self.h, other.l -1)))
             if self.h > other.h:
-                ret.append(Range(l=other.l+1, h = self.h))
+                ret.append(Range(l=other.h+1, h = self.h))
         else:
             if other.h < self.h:
                 ret.append(Range(l=max(self.l, other.h+1), h= self.h))
