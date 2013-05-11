@@ -54,7 +54,7 @@ class FDDNode:
     def __init__(self):
         self.dim = -1
         self.edgeset = []
-        self.pc = []
+        self.ppc = []
 
 class FDD:
     def __init__(self, order):
@@ -114,17 +114,17 @@ class FDD:
                 bms[bitmap.intbit()] = [tnum]
             tnum += 1
 
-    def build_node_pc(self, parent, edge):
-        npc = []
-        rs = [x[parent.dim].r for x in parent.pc]
+    def build_node_pc(self, pc, parent, edge):
+        nppc = []
+        rs = [(pc[x])[parent.dim].r for x in parent.ppc]
 
         for ri in range(len(rs)):
             for er in edge.rangeset:
                 if er.within(rs[ri]):
-                    npc.append(parent.pc[ri])
+                    nppc.append(parent.ppc[ri])
                     break;
 
-        return npc
+        return nppc
 
     def isomorphic(self, level):
         pass
@@ -133,7 +133,7 @@ class FDD:
         pass
 
     def build_fdd(self, pc):
-        self.root.pc = pc
+        self.root.ppc = range(len(pc))
         thislevel = [self.root]
         nextlevel = []
         bms = {}
@@ -143,7 +143,7 @@ class FDD:
             edgecnt = 0
             for node in thislevel:
                 node.dim = dim
-                rs = [x[dim].r for x in node.pc]
+                rs = [(pc[x])[dim].r for x in node.ppc]
                 #if dim==4:
                     #if rule.Range(l=0,h=255) not in rs:
                     #    print rs
@@ -163,11 +163,11 @@ class FDD:
                         edge.rangeset.append(i[ri])
                     edge.node = FDDNode()
                     nodecnt += 1
-                    edge.node.pc = self.build_node_pc(node, edge)
+                    edge.node.ppc = self.build_node_pc(pc, node, edge)
                     nextlevel.append(edge.node)
                     node.edgeset.append(edge)
 
-                del node.pc
+                del node.ppc
                 del bms
                 bms = {}
 
@@ -187,7 +187,8 @@ if __name__ == "__main__":
 
     order=[0,1,2,3,4]
     f = FDD(order)
-    f.build_fdd(pc[0:len(pc)-1])
+    #the last one is a wild rule
+    f.build_fdd(pc)
 
     #for i in f.root.edgeset:
     #    print i.rangeset
