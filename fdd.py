@@ -183,9 +183,9 @@ class FDD:
 
 
             del thislevel
-            #print "finish", dim
-            #print "nodecnt", nodecnt
-            #print "edgecnt", edgecnt
+            print "finish", dim
+            print "nodecnt", self.nodecnt
+            print "edgecnt", self.edgecnt
             thislevel = nextlevel
             nextlevel = []
 
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
     print len(pc)
 
-    order=[0,1,2,3,4]
+    order=[0,4,1,2,3]
     f = FDD(order)
     #the last one is a wild rule
 
