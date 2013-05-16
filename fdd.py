@@ -49,16 +49,60 @@ def rset_minus(r, rangeset):
         ret.append(t)
     return ret
 
+class CMPError(Exception):
+    def __init__(self):
+        pass
+
+    def __repr__(self):
+        return "compare edge with no color assigned"
+
+
 class FDDEdge:
     def __init__(self):
         self.rangeset = []
         self.node = None
+
+    def __eq__(self, other):
+
+        if self.node.color == -1 or other.node.color == -1:
+            #print self.node.dim
+            raise CMPError
+
+        if self.node.color != other.node.color:
+            return False
+        else:
+            if len(self.rangeset) != len(other.rangeset):
+                return False
+            else:
+                for i in range(len(self.rangeset)):
+                    if self.rangeset[i] == other.rangeset[i]:
+                        continue
+                    else:
+                        return False
+        return True
+
 
 class FDDNode:
     def __init__(self):
         self.dim = -1
         self.edgeset = []
         self.ppc = []
+        self.sig = -1
+        self.color = -1
+
+    def __eq__(self,other):
+        if self.sig != other.sig:
+            return False
+        else:
+            if len(self.edgeset) != len(other.edgeset):
+                return False
+            for i in range(len(self.edgeset)):
+                if self.edgeset[i] == other.edgeset[i]:
+                    continue
+                else:
+                    return False
+        return True
+
 
 class FDD:
     def __init__(self, order):
@@ -134,8 +178,45 @@ class FDD:
 
         return nppc
 
-    def isomorphic(self, level):
-        pass
+    def color_level(self, level):
+        uniq = [level[0]]
+        level[0].color = 0
+
+        color = 1
+        flag = 0
+
+        for n in level[1:]:
+            for nu in uniq:
+                if nu == n:
+                    n.color = nu.color
+                    flag = 1
+                    break
+                else:
+                    continue
+
+            if flag == 0:
+                n.color = color
+                color += 1
+                uniq.append(n)
+            else:
+                flag = 0
+        print color
+
+    def fdd_reduce(self):
+        level_dict = {}
+        level_dict[0] = [self.root]
+
+        for i in range(len(self.order)-1):
+            level_dict[i+1] = []
+            for n in level_dict[i]:
+                for e in n.edgeset:
+                    level_dict[i+1].append(e.node)
+
+        for i in range(len(self.order)-1, -1, -1):
+            self.color_level(level_dict[i])
+            print len(level_dict[i]), i
+
+
 
     def fdd_match(self, trace):
         pass
@@ -146,9 +227,6 @@ class FDD:
         nextlevel = []
         bms = {}
 
-        #nodecnt = 0
-        #edgecnt = 0
-        #rangecnt = 0
         for dim in self.order:
             for node in thislevel:
                 node.dim = dim
@@ -186,8 +264,50 @@ class FDD:
             print "finish", dim
             print "nodecnt", self.nodecnt
             print "edgecnt", self.edgecnt
+            print "rangecnt", self.rangecnt
             thislevel = nextlevel
             nextlevel = []
+
+        self.sigleafnode(thislevel)
+        self.sig_node(self.root)
+        self.fdd_reduce()
+
+    def sigleafnode(self, levelnodes):
+
+        nextlevel = []
+        leafdict = {}
+        leafcolor = 0
+        for n in levelnodes:
+            if n.sig == -1:
+                if len(n.ppc) != 0:
+                # n is the leaf
+                    strkey = reduce(lambda x,y: str(x)+"."+str(y), n.ppc)
+                    #print strkey
+                    if strkey not in leafdict:
+                        leafdict[strkey] = leafcolor
+                        n.sig = leafcolor
+                        n.color = n.sig
+                        leafcolor += 1
+                    else:
+                        n.sig = leafdict[strkey]
+                        n.color = n.sig
+
+    def sig_node(self, n):
+
+        if n.sig != -1:
+            return n.sig
+
+        key = 0
+        for e in n.edgeset:
+            key ^= hash(self.sig_node(e.node))
+            for r in e.rangeset:
+                key ^= hash(r)
+
+        n.sig = key
+        #print n.sig
+
+        #print leafdict.items()
+        #print len(levelnodes), len(leafdict.items())
 
     def fdd_mem(self, n):
         mem = 0
@@ -202,6 +322,8 @@ class FDD:
             mem += self.fdd_mem(e.node)
 
         return mem
+
+
 
 
         #TO: an isomorphic code here
