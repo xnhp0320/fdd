@@ -237,8 +237,7 @@ class FDD:
 
                 i = self.build_interval(rs)
                 #if dim == 4:
-                    #print node.pc
-                    #print i
+                #    print i
                 #print len(i)
                 self.build_bms(i, rs, bms)
 
@@ -330,13 +329,12 @@ class FDD:
 
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
-    print len(pc)
 
-    order=[0,4,1,2,3]
+    order=[4,0,1,2,3]
     f = FDD(order)
     #the last one is a wild rule
 
-    f.build_fdd(pc)
+    f.build_fdd(pc[1:len(pc)-1])
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
     #for i in f.root.edgeset:

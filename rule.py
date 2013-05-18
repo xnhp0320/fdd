@@ -12,7 +12,7 @@ def zeros(n):
     return (0 for i in range(n))
 
 class Range:
-    def __init__(self, b=32, h=0, l=0):
+    def __init__(self, l=0, h=0, b=32):
         self.h = h
         self.l = l
         self.bits = b
@@ -87,7 +87,7 @@ class Range:
 
 class Port:
     def __init__(self):
-        self.r = Range(16)
+        self.r = Range(b=16)
 
 
     def __repr__(self):
@@ -106,7 +106,7 @@ class Port:
 
 class Pro:
     def __init__(self):
-        self.r = Range(8)
+        self.r = Range(b=8)
 
     def __repr__(self):
         if self.r.h == 255 and self.r.l == 0:
@@ -138,7 +138,7 @@ class IP:
     def __init__(self):
         (self.b1, self.b2, self.b3 , self.b4) = zeros(4)
         self.prefixlen = 0
-        self.r = Range(32)
+        self.r = Range(b=32)
 
     def __repr__(self):
         return str(self.b1)+"."+str(self.b2)+"."+str(self.b3)+"."+str(self.b4) + "/" + str(self.prefixlen)
