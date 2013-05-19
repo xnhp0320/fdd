@@ -6,11 +6,15 @@ import sys
 import re
 import os
 import rule
+import signal
 
 RULE_INDEX = 2
 RANGE_SIZE = 8
 POINTER_SIZE = 4
 NODE_SIZE = 1
+
+
+
 
 
 class Bitmap:
@@ -323,18 +327,17 @@ class FDD:
         return mem
 
 
-
-
-        #TO: an isomorphic code here
-
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
 
     order=[4,0,1,2,3]
     f = FDD(order)
     #the last one is a wild rule
+    try:
+        f.build_fdd(pc[1:len(pc)-1])
+    except KeyboardInterrupt:
+        print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
 
-    f.build_fdd(pc[1:len(pc)-1])
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
     #for i in f.root.edgeset:
