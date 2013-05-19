@@ -8,6 +8,10 @@ import os
 import rule
 import signal
 import gc
+from fwsched import Scheduler
+from fwsched import PrepSchedData
+
+
 
 RULE_INDEX = 2
 RANGE_SIZE = 8
@@ -66,6 +70,7 @@ class FDDEdge:
     def __init__(self):
         self.rangeset = []
         self.node = None
+        #self.active = True
 
     def __eq__(self, other):
 
@@ -86,14 +91,44 @@ class FDDEdge:
                         return False
         return True
 
+    def __del__(self):
+        del self.rangeset
+
+    def merge(self, other):
+        other.node = self.node
+        #other.active = False
+        self.rangeset.extend(other.rangeset)
+        self.rangeset = list(set(self.rangeset))
+        self.rangeset.sort()
+
+        r = self.rangeset[0]
+        nrangeset = []
+
+        for i in range(1,len(self.rangeset)):
+            if self.rangeset[i].l == r.h+1:
+                r.h = self.rangeset[i].h
+            else:
+                nrangeset.append(r)
+                r = self.rangeset[i]
+
+        if len(nrangeset) == 0:
+            nrangeset.append(r)
+
+        self.rangeset = nrangeset
+
+
+
+
 
 class FDDNode:
     def __init__(self):
         self.dim = -1
         self.edgeset = []
+        self.in_edgeset = []
         self.ppc = []
         self.sig = -1
         self.color = -1
+        self.cost = -1
 
     def __eq__(self,other):
         if self.sig != other.sig:
@@ -107,6 +142,35 @@ class FDDNode:
                 else:
                     return False
         return True
+
+    def clear(self):
+        del self.edgeset
+        del self.in_edgeset
+        if 'ppc' in dir(self):
+            del self.ppc
+
+    def edges_reduce(self):
+        ndict = {}
+        for e in self.edgeset:
+            if e.node.color in ndict:
+                ndict[e.node.color].append(e)
+            else:
+                ndict[e.node.color] = [e]
+
+        nedgeset = []
+        for key in ndict.keys():
+            if len(ndict[key]) == 1:
+                nedgeset.extend(ndict[key])
+            if len(ndict[key]) > 1:
+                e = ndict[key][0]
+                for oe in ndict[key][1:]:
+                    e.merge(oe)
+                nedgeset.append(e)
+
+        self.edgeset = nedgeset
+
+
+
 
 
 class FDD:
@@ -193,7 +257,10 @@ class FDD:
         for n in level[1:]:
             for nu in uniq:
                 if nu == n:
-                    n.color = nu.color
+                    #n.color = nu.color
+                    for e in n.in_edgeset:
+                        e.node = nu
+                    n.clear()
                     flag = 1
                     break
                 else:
@@ -205,31 +272,79 @@ class FDD:
                 uniq.append(n)
             else:
                 flag = 0
-        print color
 
-    def fdd_reduce(self):
-        level_dict = {}
-        level_dict[0] = [self.root]
+        print len(level), len(uniq)
+        return uniq
 
-        for i in range(len(self.order)-1):
-            level_dict[i+1] = []
-            for n in level_dict[i]:
-                for e in n.edgeset:
-                    level_dict[i+1].append(e.node)
 
+
+
+    def fdd_reduce(self, levelnodes):
+        reducednodes = {}
         for i in range(len(self.order)-1, -1, -1):
-            self.color_level(level_dict[i])
-            print len(level_dict[i]), i
+            reducednodes[i] = self.color_level(levelnodes[i])
 
+        for i in range(len(self.order)):
+            for n in reducednodes[i]:
+                n.edges_reduce()
+        return reducednodes
 
 
     def fdd_match(self, trace):
         pass
 
+    def prepare_sched(self, n):
+        prepdict = {}
+        for e in n.edgeset:
+            for r in e.rangeset:
+                prep = PrepSchedData(r, e.node.color, e.node.cost)
+                if e.node.color not in prepdict:
+                    prepdict[e.node.color] = [prep]
+                else:
+                    prepdict[e.node.color].append(prep)
+
+        #print prepdict.values()
+        preplist = reduce(lambda x,y: x+y, prepdict.values())
+        #print preplist
+        preplist.sort()
+        color = [x.color for x in preplist]
+
+        cost = {}
+        for key in prepdict.keys():
+            cost[key] = prepdict[key][0].cost
+
+        group = {}
+        index = 0
+        for c in color:
+            if c not in group:
+                group[c] = [index]
+            else:
+                group[c].append(index)
+            index += 1
+
+        for key in prepdict.keys():
+            prepdict[key].sort()
+
+        return color, cost, group, preplist
+
+    def compress(self, levelnodes):
+        for i in range(len(self.order)-1, -1, -1):
+            for n in levelnodes[i]:
+                color, cost, group, prelist = self.prepare_sched(n)
+                #print color, cost, group
+                #print len(color)
+                sched = Scheduler(color, cost, group)
+                n.cost = sched.FSA_cost(0, len(color)-1)
+                sched.FSA_result(0,0,len(color)-1)
+
+
+
     def build_fdd(self, pc):
         self.root.ppc = range(len(pc))
         thislevel = [self.root]
         nextlevel = []
+        levelnodes = {}
+        levelcnt = 0
         bms = {}
 
         for dim in self.order:
@@ -254,6 +369,7 @@ class FDD:
                         edge.rangeset.append(i[ri])
                         self.rangecnt += 1
                     edge.node = FDDNode()
+                    edge.node.in_edgeset.append(edge)
                     self.nodecnt += 1
                     edge.node.ppc = self.build_node_pc(pc, node, edge)
                     nextlevel.append(edge.node)
@@ -263,8 +379,8 @@ class FDD:
                 del bms
                 bms = {}
 
-
-            del thislevel
+            levelnodes[levelcnt] = thislevel
+            levelcnt += 1
             print "finish", dim
             print "nodecnt", self.nodecnt
             print "edgecnt", self.edgecnt
@@ -272,11 +388,15 @@ class FDD:
             thislevel = nextlevel
             nextlevel = []
 
-        self.sigleafnode(thislevel)
+        self.process_leafnodes(thislevel)
         self.sig_node(self.root)
-        self.fdd_reduce()
+        return levelnodes
 
-    def sigleafnode(self, levelnodes):
+    def firewall_compressor(self, levelnodes):
+        reducednodes = self.fdd_reduce(levelnodes)
+        self.compress(reducednodes)
+
+    def process_leafnodes(self, levelnodes):
 
         nextlevel = []
         leafdict = {}
@@ -295,6 +415,7 @@ class FDD:
                     else:
                         n.sig = leafdict[strkey]
                         n.color = n.sig
+            n.cost = 1
 
     def sig_node(self, n):
 
@@ -337,10 +458,13 @@ if __name__ == "__main__":
     #the last one is a wild rule
     gc.disable()
     try:
-        f.build_fdd(pc[1:len(pc)-1])
+        levelnodes = f.build_fdd(pc)
     except KeyboardInterrupt:
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
     gc.enable()
+    print "FDD(mem):", f.fdd_mem(f.root), "bytes"
+
+    f.firewall_compressor(levelnodes)
 
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 

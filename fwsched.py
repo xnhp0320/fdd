@@ -3,6 +3,16 @@
 
 from rule import Range
 
+class PrepSchedData:
+    def __init__(self, r, color, cost):
+        self.r = r
+        self.color = color
+        self.cost = cost
+
+    def __cmp__(self, other):
+        return self.r.__cmp__(other.r)
+    def __repr__(self):
+        return "R: "+ str(self.r) +" " + "C: " +  str(self.color) +" "+ "Cost: " + str(self.cost)
 
 class Scheduler:
 
@@ -15,7 +25,7 @@ class Scheduler:
         self.C = [[0 for x in xrange(len(self.color))] for x in xrange(len(self.color))]
         self.R = []
 
-        for c in xrange(1,len(self.color)):
+        for c in xrange(len(self.color)):
             #print c
             #print self.C[c][c]
             self.C[c][c] = self.cost[self.color[c]]
@@ -55,14 +65,20 @@ class Scheduler:
 
 
 if __name__ == "__main__":
-    cost = [1,1]
-    color = [0,1,0]
-    group ={0:[0,2], 1:[1]}
+#cost is per color
+    cost = {}
+    cost[0] = 1
+    cost[1] = 1
+    cost[2] = 1
+#color is per task(range)
+    color = [0,1,2,1,0]
+#group is a dict for color
+    group ={0:[0,4], 1:[1,3],2:[3]}
 
     sched = Scheduler(color, cost, group)
-    sched.FSA_cost(0,2)
+    sched.FSA_cost(0,4)
     #print sched.C, sched.M
-    sched.FSA_result(0,0,2)
+    sched.FSA_result(0,0,4)
     #print sched.C[0][2]
     print sched.R
 
