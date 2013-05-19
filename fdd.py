@@ -7,6 +7,7 @@ import re
 import os
 import rule
 import signal
+import gc
 
 RULE_INDEX = 2
 RANGE_SIZE = 8
@@ -332,11 +333,14 @@ if __name__ == "__main__":
 
     order=[4,0,1,2,3]
     f = FDD(order)
+
     #the last one is a wild rule
+    gc.disable()
     try:
         f.build_fdd(pc[1:len(pc)-1])
     except KeyboardInterrupt:
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+    gc.enable()
 
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
