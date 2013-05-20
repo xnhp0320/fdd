@@ -22,6 +22,8 @@ NODE_SIZE = 1
 class PackRange:
     def __init__(self, r):
         self.r = r
+    def __repr__(self):
+        return self.r.__repr__()
 
 def pack_raw_pc(raw_pc):
     pc = []
@@ -116,18 +118,19 @@ class FDDEdge:
         self.rangeset = list(set(self.rangeset))
         self.rangeset.sort()
 
-        r = self.rangeset[0]
         nrangeset = []
-
-        for i in range(1,len(self.rangeset)):
-            if self.rangeset[i].l == r.h+1:
-                r.h = self.rangeset[i].h
-            else:
-                nrangeset.append(r)
-                r = self.rangeset[i]
-
-        if len(nrangeset) == 0:
-            nrangeset.append(r)
+        i = 0
+        while i<= len(self.rangeset):
+            rt = self.rangeset[i]
+            j = i+1
+            while j<= len(self.rangeset):
+                if rt.h == self.rangeset[j].l - 1:
+                    rt.h = self.rangeset[j].h
+                    j += 1
+                else:
+                    break
+            nrangeset.append(rt)
+            i = j
 
         self.rangeset = nrangeset
 
@@ -212,8 +215,10 @@ class FDD:
             #    print retl
 
             for ri in range(len(retl)):
+                #print "retl", retl[ri]
                 if not retl[ri].within(r):
                     insect = retl[ri].insect(r)
+                    #print insect
                     if insect != None:
                         t = retl[ri].minus(r)
                         #print "t", t
@@ -353,24 +358,26 @@ class FDD:
     def make_compressed_edgeset(self, n, R, RC, preplist):
         rangeset = []
         color = []
+        #print preplist
+        #print R
         for ri in range(len(R)):
-            rt = preplist[R[ri].l].r
-            for i in range(R[ri].l+1, R[ri].h+1):
-                if rt.h == preplist[i].r.l - 1:
-                    rt.h = preplist[i].r.h
-                else:
-                    rangeset.append(rt)
-                    color.append(RC[ri])
-                    rt = preplist[i].r
-
-            if R[ri].h  == R[ri].l:
+            i = R[ri].l
+            while i<= R[ri].h:
+                rt = preplist[i].r
+                j = i+1
+                while j <= R[ri].h:
+                    if rt.h == preplist[j].r.l -1:
+                        rt.h = preplist[j].r.h
+                        j += 1
+                    else:
+                        break
                 rangeset.append(rt)
                 color.append(RC[ri])
+                i = j
 
-
-        for e in n.edgeset:
+        for ci in range(len(color)):
             ne = FDDEdge()
-            for ci in range(len(color)):
+            for e in n.edgeset:
                 if color[ci] == e.node.color:
                     ne.node = e.node
                     ne.rangeset.append(rangeset[ci])
@@ -378,6 +385,7 @@ class FDD:
 
         #return rangeset
         #print rangeset
+        #print R
 
 
 
@@ -390,6 +398,7 @@ class FDD:
                 sched = Scheduler(color, cost, group)
                 n.cost = sched.FSA_cost(0, len(color)-1)
                 sched.FSA_result(0,0,len(color)-1)
+                #print sched.R
 
                 self.make_compressed_edgeset(n, sched.R, sched.RC, preplist)
 
@@ -414,7 +423,7 @@ class FDD:
 
                 i = self.build_interval(rs)
                 #if dim == 4:
-                #    print i
+                #print i
                 #print len(i)
                 self.build_bms(i, rs, bms)
 
