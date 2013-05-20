@@ -6,6 +6,7 @@ import sys
 import re
 import os
 import subprocess
+import random
 from trie import *
 
 def zeros(n):
@@ -131,7 +132,13 @@ class Pro:
             self.r.h = int(m.group(1), 16)
        # print self
 
-
+class Decision:
+    def __init__(self,d):
+        self.d = d
+    def random(self,d):
+        self.d = random.randint(0,d-1)
+    def __repr__(self):
+        return str(self.d)
 
 
 class IP:
@@ -194,7 +201,10 @@ def rule_parse(pc, line):
     p = Pro()
     p.parse(m.group('p'))
 
-    pc.append((sip, dip, sp, dp, p))
+    d = Decision(0)
+    d.random(2)
+
+    pc.append((sip, dip, sp, dp, p, d))
 
 
 

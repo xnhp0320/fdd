@@ -29,9 +29,11 @@ def pack_raw_pc(raw_pc):
     pc = []
     for pcr in raw_pc:
         prefix = []
-        for r in pcr:
+        for r in pcr[:len(pcr)-1]:
             pr = PackRange(r)
             prefix.append(pr)
+
+        prefix.append(pcr[len(pcr)-1])
 
         pc.append(prefix)
     return pc
@@ -302,9 +304,9 @@ class FDD:
 
 
 
-    def fdd_reduce(self, levelnodes, leafnodes):
+    def fdd_reduce(self, pc, levelnodes, leafnodes):
 
-        self.process_leafnodes(leafnodes)
+        self.process_leafnodes(pc, leafnodes)
         self.sig_node(self.root)
 
         reducednodes = {}
@@ -459,27 +461,63 @@ class FDD:
         print "\n*building complete\n"
         return levelnodes, thislevel
 
-    def output_compressed_list(self, n, prefix, raw_pc):
+    def output_compressed_list(self, pc, n, prefix, raw_pc):
         if n.dim == -1:
             #print prefix
+            prefix[len(self.order)] = rule.Decision(pc[n.ppc[0]][len(self.order)].d)
             raw_pc.append(list(prefix))
             return
 
         for e in n.compressed_edgeset:
             for r in e.rangeset:
                 prefix[n.dim] = r
-                self.output_compressed_list(e.node, prefix, raw_pc)
+                self.output_compressed_list(pc, e.node, prefix, raw_pc)
 
 
-    def firewall_compressor(self, levelnodes, leafnodes):
+    def firewall_compressor(self, pc, levelnodes, leafnodes):
         print "*compress the ruleset"
-        reducednodes = self.fdd_reduce(levelnodes, leafnodes)
+        reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
-        prefix = [ None for x in xrange(len(self.order)) ]
+        prefix = [ None for x in xrange(len(self.order)+1) ]
         raw_pc = []
-        self.output_compressed_list(self.root, prefix, raw_pc)
+        self.output_compressed_list(pc,self.root, prefix, raw_pc)
         print "compress the ruleset raw:", len(raw_pc)
+        #print raw_pc
         return pack_raw_pc(raw_pc)
+
+    def redund_remove_semantic(self, leafnodes, rr_output, removed_list, pc):
+        ppcdict = {}
+        conlist = [n.ppc for n in leafnodes]
+        for ni in range(len(conlist)):
+            for ppc in conlist[ni]:
+                if ppc in ppcdict:
+                    ppcdict[ppc].append(ni)
+                else:
+                    ppcdict[ppc] = [ni]
+
+        rules = sorted(ppcdict.keys(), reverse = True)
+        for ppc in rules:
+            redund = True
+            for ni in ppcdict[ppc]:
+                if len(conlist[ni]) == 1:
+                    redund = False
+                    break
+                if conlist[ni][0] == ppc:
+                    j = conlist[ni][1]
+                    #print j
+                    #print pc[j]
+                    #print pc[ppc][len(self.order)]
+                    if pc[j][len(self.order)].d != pc[ppc][len(self.order)].d:
+                        redund = False
+                        break
+
+            if redund:
+                removed_list.append(ppc)
+                for ni in ppcdict[ppc]:
+                    conlist[ni].remove(ppc)
+            else:
+                rr_output.append(ppc)
+
 
     def redund_remove(self, leafnodes, rr_output, removed_list):
         ppcdict = {}
@@ -505,26 +543,32 @@ class FDD:
 
 
 
-    def process_leafnodes(self, levelnodes):
+    def process_leafnodes(self, pc, levelnodes):
 
         nextlevel = []
         leafdict = {}
         leafcolor = 0
+        uniq = {}
         for n in levelnodes:
             if n.sig == -1:
                 if len(n.ppc) != 0:
                 # n is the leaf
                     #strkey = reduce(lambda x,y: str(x)+"."+str(y), n.ppc)
-                    strkey = n.ppc[0]
+                    #strkey = n.ppc[0]
+                    strkey = pc[n.ppc[0]][len(self.order)].d
                     #print strkey
                     if strkey not in leafdict:
                         leafdict[strkey] = leafcolor
+                        uniq[strkey] = n
                         n.sig = leafcolor
                         n.color = n.sig
                         leafcolor += 1
                     else:
                         n.sig = leafdict[strkey]
                         n.color = n.sig
+                        for e in n.in_edgeset:
+                            e.node = uniq[strkey]
+                        n.clear()
             n.cost = 1
 
     def sig_node(self, n):
@@ -561,6 +605,7 @@ class FDD:
 
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
+    #print pc
 
     order=[4,0,1,2,3]
     f = FDD(order)
@@ -574,7 +619,7 @@ if __name__ == "__main__":
     gc.enable()
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    cpc = f.firewall_compressor(levelnodes, leafnodes)
+    cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
     #print cpc
 
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
@@ -583,7 +628,7 @@ if __name__ == "__main__":
     levelnodes, leafnodes = f3.build_fdd(cpc)
     rr_out = []
     removed_list = []
-    f3.redund_remove(leafnodes, rr_out, removed_list)
+    f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
     print len(removed_list)
     print len(rr_out)
 
