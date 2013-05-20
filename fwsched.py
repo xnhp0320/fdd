@@ -24,6 +24,7 @@ class Scheduler:
         self.M = [[0 for x in xrange(len(self.color))] for x in xrange(len(self.color))]
         self.C = [[0 for x in xrange(len(self.color))] for x in xrange(len(self.color))]
         self.R = []
+        self.RC = []
 
         for c in xrange(len(self.color)):
             #print c
@@ -54,14 +55,17 @@ class Scheduler:
         if i == j:
             #print t,i
             self.R.append(Range(t,i))
+            self.RC.append(self.color[t])
         else:
             if self.M[i][j] == i:
                 self.FSA_result(i+1, i+1, j)
                 #print t,i
                 self.R.append(Range(t,i))
+                self.RC.append(self.color[t])
             else:
                 self.FSA_result(i+1, i + 1, self.M[i][j] - 1)
                 self.FSA_result(t, self.M[i][j], j)
+
 
 
 if __name__ == "__main__":
@@ -81,6 +85,7 @@ if __name__ == "__main__":
     sched.FSA_result(0,0,4)
     #print sched.C[0][2]
     print sched.R
+    print sched.RC
 
 
 

@@ -19,6 +19,21 @@ POINTER_SIZE = 4
 NODE_SIZE = 1
 
 
+class PackRange:
+    def __init__(self, r):
+        self.r = r
+
+def pack_raw_pc(raw_pc):
+    pc = []
+    for pcr in raw_pc:
+        prefix = []
+        for r in pcr:
+            pr = PackRange(r)
+            prefix.append(pr)
+
+        pc.append(prefix)
+    return pc
+
 
 
 
@@ -130,6 +145,8 @@ class FDDNode:
         self.color = -1
         self.cost = -1
 
+        self.compressed_edgeset = []
+
     def __eq__(self,other):
         if self.sig != other.sig:
             return False
@@ -158,6 +175,7 @@ class FDDNode:
                 ndict[e.node.color] = [e]
 
         nedgeset = []
+
         for key in ndict.keys():
             if len(ndict[key]) == 1:
                 nedgeset.extend(ndict[key])
@@ -257,7 +275,7 @@ class FDD:
         for n in level[1:]:
             for nu in uniq:
                 if nu == n:
-                    #n.color = nu.color
+                    n.color = nu.color
                     for e in n.in_edgeset:
                         e.node = nu
                     n.clear()
@@ -279,7 +297,11 @@ class FDD:
 
 
 
-    def fdd_reduce(self, levelnodes):
+    def fdd_reduce(self, levelnodes, leafnodes):
+
+        self.process_leafnodes(leafnodes)
+        self.sig_node(self.root)
+
         reducednodes = {}
         for i in range(len(self.order)-1, -1, -1):
             reducednodes[i] = self.color_level(levelnodes[i])
@@ -327,15 +349,50 @@ class FDD:
 
         return color, cost, group, preplist
 
+
+    def make_compressed_edgeset(self, n, R, RC, preplist):
+        rangeset = []
+        color = []
+        for ri in range(len(R)):
+            rt = preplist[R[ri].l].r
+            for i in range(R[ri].l+1, R[ri].h+1):
+                if rt.h == preplist[i].r.l - 1:
+                    rt.h = preplist[i].r.h
+                else:
+                    rangeset.append(rt)
+                    color.append(RC[ri])
+                    rt = preplist[i].r
+
+            if R[ri].h  == R[ri].l:
+                rangeset.append(rt)
+                color.append(RC[ri])
+
+
+        for e in n.edgeset:
+            ne = FDDEdge()
+            for ci in range(len(color)):
+                if color[ci] == e.node.color:
+                    ne.node = e.node
+                    ne.rangeset.append(rangeset[ci])
+            n.compressed_edgeset.append(ne)
+
+        #return rangeset
+        #print rangeset
+
+
+
     def compress(self, levelnodes):
         for i in range(len(self.order)-1, -1, -1):
             for n in levelnodes[i]:
-                color, cost, group, prelist = self.prepare_sched(n)
+                color, cost, group, preplist = self.prepare_sched(n)
                 #print color, cost, group
                 #print len(color)
                 sched = Scheduler(color, cost, group)
                 n.cost = sched.FSA_cost(0, len(color)-1)
                 sched.FSA_result(0,0,len(color)-1)
+
+                self.make_compressed_edgeset(n, sched.R, sched.RC, preplist)
+
 
 
 
@@ -388,13 +445,56 @@ class FDD:
             thislevel = nextlevel
             nextlevel = []
 
-        self.process_leafnodes(thislevel)
-        self.sig_node(self.root)
-        return levelnodes
+        #self.process_leafnodes(thislevel)
+        #self.sig_node(self.root)
+        print "\n*building complete\n"
+        return levelnodes, thislevel
 
-    def firewall_compressor(self, levelnodes):
-        reducednodes = self.fdd_reduce(levelnodes)
+    def output_compressed_list(self, n, prefix, raw_pc):
+        if n.dim == -1:
+            #print prefix
+            raw_pc.append(list(prefix))
+            return
+
+        for e in n.compressed_edgeset:
+            for r in e.rangeset:
+                prefix[n.dim] = r
+                self.output_compressed_list(e.node, prefix, raw_pc)
+
+
+    def firewall_compressor(self, levelnodes, leafnodes):
+        print "*compress the ruleset"
+        reducednodes = self.fdd_reduce(levelnodes, leafnodes)
         self.compress(reducednodes)
+        prefix = [ None for x in xrange(len(self.order)) ]
+        raw_pc = []
+        self.output_compressed_list(self.root, prefix, raw_pc)
+        print "compress the ruleset raw:", len(raw_pc)
+        return pack_raw_pc(raw_pc)
+
+    def redund_remove(self, leafnodes, rr_output, removed_list):
+        ppcdict = {}
+        for ni in range(len(leafnodes)):
+            for ppc in leafnodes[ni].ppc:
+                if ppc in ppcdict:
+                    ppcdict[ppc].append(ni)
+                else:
+                    ppcdict[ppc] = [ni]
+
+        for ppc in ppcdict.keys():
+            ppc_no_overlapped = False
+            for ni in ppcdict[ppc]:
+                if leafnodes[ni].ppc[0] == ppc:
+                    ppc_no_overlapped = True
+                    break
+                else:
+                    continue
+            if ppc_no_overlapped:
+                rr_output.append(ppc)
+            else:
+                removed_list.append(ppc)
+
+
 
     def process_leafnodes(self, levelnodes):
 
@@ -458,15 +558,24 @@ if __name__ == "__main__":
     #the last one is a wild rule
     gc.disable()
     try:
-        levelnodes = f.build_fdd(pc)
+        levelnodes,leafnodes = f.build_fdd(pc)
     except KeyboardInterrupt:
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
     gc.enable()
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    f.firewall_compressor(levelnodes)
+    cpc = f.firewall_compressor(levelnodes, leafnodes)
+    #print cpc
 
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
+
+    f3 = FDD(order)
+    levelnodes, leafnodes = f3.build_fdd(cpc)
+    rr_out = []
+    removed_list = []
+    f3.redund_remove(leafnodes, rr_out, removed_list)
+    print len(removed_list)
+    print len(rr_out)
 
     #for i in f.root.edgeset:
     #    print i.rangeset
