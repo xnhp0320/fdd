@@ -120,10 +120,10 @@ class FDDEdge:
 
         nrangeset = []
         i = 0
-        while i<= len(self.rangeset):
+        while i< len(self.rangeset):
             rt = self.rangeset[i]
             j = i+1
-            while j<= len(self.rangeset):
+            while j< len(self.rangeset):
                 if rt.h == self.rangeset[j].l - 1:
                     rt.h = self.rangeset[j].h
                     j += 1
@@ -514,7 +514,8 @@ class FDD:
             if n.sig == -1:
                 if len(n.ppc) != 0:
                 # n is the leaf
-                    strkey = reduce(lambda x,y: str(x)+"."+str(y), n.ppc)
+                    #strkey = reduce(lambda x,y: str(x)+"."+str(y), n.ppc)
+                    strkey = n.ppc[0]
                     #print strkey
                     if strkey not in leafdict:
                         leafdict[strkey] = leafcolor
