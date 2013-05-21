@@ -1,11 +1,12 @@
 #!/usr/bin/python
+import copy
 
 
 from rule import Range
 
 class PrepSchedData:
     def __init__(self, r, color, cost):
-        self.r = r
+        self.r = copy.copy(r)
         self.color = color
         self.cost = cost
 

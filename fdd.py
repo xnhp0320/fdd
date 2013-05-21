@@ -7,6 +7,7 @@ import re
 import os
 import rule
 import signal
+import copy
 import gc
 from fwsched import Scheduler
 from fwsched import PrepSchedData
@@ -89,6 +90,7 @@ class FDDEdge:
     def __init__(self):
         self.rangeset = []
         self.node = None
+        self.no = -1
         #self.active = True
 
     def __eq__(self, other):
@@ -123,8 +125,16 @@ class FDDEdge:
 
         for e in edges:
             rangeset.extend(e.rangeset)
+            #if node != e.node:
+            #    raise Exception
+        #if v:
+        #    print "merge", mark
         rangeset = list(set(rangeset))
         rangeset.sort()
+
+        #if v:
+        #    print "merge", mark
+        #    print rangeset
 
         nrangeset=[]
         i = 0
@@ -176,7 +186,6 @@ class FDDEdge:
 
 
 
-
 class FDDNode:
     def __init__(self):
         self.dim = -1
@@ -186,6 +195,7 @@ class FDDNode:
         self.sig = -1
         self.color = -1
         self.cost = -1
+        self.no = -1
 
         self.compressed_edgeset = []
 
@@ -203,6 +213,9 @@ class FDDNode:
         return True
 
     def clear(self):
+        self.cost = -1
+        self.sig = -1
+        self.color = -1
         del self.edgeset
         del self.in_edgeset
         if 'ppc' in dir(self):
@@ -219,22 +232,29 @@ class FDDNode:
             while j < len(rangeset):
                 ret = rangeset[i].insect(rangeset[j])
                 if ret != None:
+                    print "exp"
+                    print rangeset
+                    print self.no
+                    for e in self.edgeset:
+                        print e.no
+                    print self.edgeset
                     raise Exception
+                j += 1
+            i += 1
 
 
     def edges_reduce(self):
-        v = False
-        vv = False
-        if self.dim == 1:
-            for e in self.edgeset:
-                for r in e.rangeset:
-                    if r.l == 1834040094:
-                        v = True
-            for e in self.in_edgeset:
-                for r in e.rangeset:
-                    if r.l == 3919972310:
-                        vv = True
-
+        #v = False
+        #vv = False
+        #if self.dim == 1:
+        #    for e in self.edgeset:
+        #        for r in e.rangeset:
+        #            if r.l == 1834040094:
+        #                v = True
+        #    for e in self.in_edgeset:
+        #        for r in e.rangeset:
+        #            if r.l == 3919972310:
+        #                vv = True
 
         ndict = {}
         for e in self.edgeset:
@@ -242,30 +262,39 @@ class FDDNode:
                 ndict[e.node.color].append(e)
             else:
                 ndict[e.node.color] = [e]
+            #if v:
+            #    print "e.node.no", e.no
 
         nedgeset = []
+        #if v:
+        #    print ndict
+        #    print [x.no for x in ndict[0]]
 
         for key in ndict.keys():
             if len(ndict[key]) == 1:
-                if v and vv:
-                    print "sig"
-                    print key
-                    print ndict[key]
+                #if v and vv:
+                #    print "sig"
+                #    print key
+                #    print ndict[key]
                 nedgeset.extend(ndict[key])
             if len(ndict[key]) > 1:
-                if v and vv:
-                    print "mul"
-                    print key
-                    print ndict[key]
+                #if v:
+                #    print ndict[key]
+                #    print mark
+                #if v and vv:
+                #    print "mul"
+                #    print key
+                #    print ndict[key]
                 e = FDDEdge.merge_edges(ndict[key])
                 nedgeset.append(e)
-                if v and vv:
-                    print "after"
-                    print e
+                #if v and vv:
+                #    print "after"
+                #    print e
 
         self.edgeset = nedgeset
-        if v and vv:
-            print "bye"
+        #self.edges_check()
+        #if v and vv:
+        #    print "bye"
 
 
 
@@ -280,9 +309,13 @@ class FDD:
         self.rangecnt = 0
 
     def build_interval(self, rset):
+#YOU HAVE TO MAKE SURE EVERY RANGE IS NEW!!!
+#NOT A REFERENCE!!!
         rl = list(set(rset))
         #print rl
-        retl = [rl[0]]
+        retl = []
+        retl.append(copy.copy(rl[0]))
+        #retl = [rl[0]]
 
         for r in rl[1:]:
             minus = rset_minus(r, retl)
@@ -367,6 +400,7 @@ class FDD:
                     if nu == n:
                         for e in n.in_edgeset:
                             e.node = nu
+                            nu.in_edgeset.append(e)
                         n.clear()
                         uniqflag = False
                         break
@@ -379,6 +413,7 @@ class FDD:
             uniq.extend(siguniq)
 
         print len(level), color
+
         return uniq
 
         #level[0].color = 0
@@ -411,16 +446,37 @@ class FDD:
 
     def fdd_reduce(self, pc, levelnodes, leafnodes):
         self.process_leafnodes(pc, leafnodes)
-        reducednodes = {}
+
+        reducednodes = [None for x in xrange(len(self.order))]
+        #mark = None
+        #nodemark = None
         for i in range(len(self.order)-1, -1, -1):
+            #for n in levelnodes[2]:
+            #    for e in n.edgeset:
+            #        if e.no == 1302:
+            #            mark = e
+            #            nodemark = e.node
+            #            print "epre", n.dim, n.no
+            #            print "nodemark", nodemark.no
+            #    if n.no== 133:
+            #        print "prein", n.edgeset, i
+
             for n in levelnodes[i]:
+                #v = False
+                #if n.no == 100:
+                #    print "100", n.edgeset, n.dim
+                #    v = True
+
                 n.edges_reduce()
+                #if mark.rangeset[0].h == 1834040095:
+                #    print n.no
+
                 self.sig_node(n)
             reducednodes[i] = self.color_level(levelnodes[i])
 
         return reducednodes
 
-    def fdd_match(self, trace, v):
+    def fdd_match(self, trace):
 
         n = self.root
         t = trace[n.dim]
@@ -431,9 +487,9 @@ class FDD:
                 rmatched = False
                 for r in e.rangeset:
                     if r.match(t):
-                        if v:
-                            print r
-                            print e
+                        ##if v:
+                        ##    print r
+                        ##    print e
                         n = e.node
                         t = trace[n.dim]
                         rmatched = True
@@ -556,10 +612,10 @@ class FDD:
 
     def build_fdd(self, pc):
         self.root.ppc = range(len(pc))
+        self.root.no = 0
         thislevel = [self.root]
         nextlevel = []
-        levelnodes = {}
-        levelcnt = 0
+        levelnodes = []
         bms = {}
 
         for dim in self.order:
@@ -579,6 +635,7 @@ class FDD:
 
                 for equalrs in bms.values():
                     edge = FDDEdge()
+                    edge.no = self.edgecnt
                     self.edgecnt += 1
                     for ri in equalrs:
                         edge.rangeset.append(i[ri])
@@ -586,18 +643,25 @@ class FDD:
                     edge.node = FDDNode()
                     edge.node.in_edgeset.append(edge)
                     self.nodecnt += 1
+                    edge.node.no = self.nodecnt
                     edge.node.ppc = self.build_node_pc(pc, node, edge)
                     nextlevel.append(edge.node)
                     node.edgeset.append(edge)
-                node.edges_check()
+                #node.edges_check()
 
 
                 del node.ppc
                 del bms
                 bms = {}
+                #if node.no == 133:
+                #    print node.edgeset
+                #for e in node.edgeset:
+                #    for r in e.rangeset:
+                #        if r.l == 1834040094:
+                #            print e
 
-            levelnodes[levelcnt] = thislevel
-            levelcnt += 1
+            levelnodes.append(thislevel)
+            #levelcnt += 1
             print "finish", dim
             print "nodecnt", self.nodecnt
             print "edgecnt", self.edgecnt
@@ -698,6 +762,8 @@ class FDD:
         leafcolor = 0
         uniq = {}
         for n in levelnodes:
+            if n.no == 133:
+                print "touch"
             if n.sig == -1:
                 if len(n.ppc) != 0:
                 # n is the leaf
@@ -716,6 +782,7 @@ class FDD:
                         n.color = n.sig
                         for e in n.in_edgeset:
                             e.node = uniq[strkey]
+                            uniq[strkey].in_edgeset.append(e)
                         n.clear()
                 else:
                     raise Exception
@@ -761,7 +828,7 @@ class FDD:
 
 
 if __name__ == "__main__":
-    pc = rule.load_ruleset(sys.argv[1])
+    pc = rule.load_ruleset("acl1_2_0.5_-0.1_1K")
     #print pc
 
     order=[4,0,1,2,3]
@@ -777,47 +844,47 @@ if __name__ == "__main__":
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
 
-    #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
-    f.fdd_reduce(pc, levelnodes, leafnodes)
+    cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+    #f.fdd_reduce(pc, levelnodes, leafnodes)
 
     traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     for ti in range(len(traces)):
-        v = False
-        d1 = f.fdd_match(traces[ti], v)
+        d1 = f.fdd_compressed_match(pc, traces[ti])
         d2 = rule.match(pc, traces[ti])
 
         #if d1 == d2[1]:
         #    pass
         #else:
         #    print t, d1, d2
-        if ti == 779:
-            v = True
-            f.fdd_match(traces[ti],v)
+        #if ti == 779:
+        #    v = True
+        #    f.fdd_match(traces[ti],v)
 
-        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+        #if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+        if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
             pass
         else:
-            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-            v = True
-            d1 = f.fdd_match(traces[ti], v)
+            #print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+            print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+            #d1 = f.fdd_match(traces[ti], v)
 
 
     #print cpc
 
     #print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    #f3 = FDD(order)
-    #levelnodes, leafnodes = f3.build_fdd(cpc)
-    #rr_out = []
-    #removed_list = []
-    #f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
+    f3 = FDD(order)
+    levelnodes, leafnodes = f3.build_fdd(cpc)
+    rr_out = []
+    removed_list = []
+    f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
 
-    #print len(removed_list)
-    #print len(rr_out)
+    print len(removed_list)
+    print len(rr_out)
 
-    #final_list = [cpc[x] for x in rr_out]
+    final_list = [cpc[x] for x in rr_out]
     #print final_list
-    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
+    rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset
