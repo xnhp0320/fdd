@@ -113,9 +113,46 @@ class FDDEdge:
     def __del__(self):
         del self.rangeset
 
+    def __repr__(self):
+        return self.rangeset.__repr__()
+
+    @staticmethod
+    def merge_edges(edges):
+        rangeset = []
+        node = edges[0].node
+
+        for e in edges:
+            rangeset.extend(e.rangeset)
+        rangeset = list(set(rangeset))
+        rangeset.sort()
+
+        nrangeset=[]
+        i = 0
+        while i< len(rangeset):
+            rt = rangeset[i]
+            j = i+1
+            while j< len(rangeset):
+                if rt.h == rangeset[j].l - 1:
+                    rt.h = rangeset[j].h
+                    j += 1
+                else:
+                    break
+            nrangeset.append(rt)
+            i = j
+
+        rangeset = nrangeset
+        e = FDDEdge()
+        e.node = node
+        e.rangeset = nrangeset
+        return e
+
+
     def merge(self, other):
-        other.node = self.node
+        #other.node = self.node
         #other.active = False
+        if self.node != other.node:
+            raise Exception
+
         self.rangeset.extend(other.rangeset)
         self.rangeset = list(set(self.rangeset))
         self.rangeset.sort()
@@ -171,7 +208,34 @@ class FDDNode:
         if 'ppc' in dir(self):
             del self.ppc
 
+    def edges_check(self):
+        rangeset = []
+        for e in self.edgeset:
+            rangeset.extend(e.rangeset)
+
+        i = 0
+        while i < len(rangeset):
+            j = i+1
+            while j < len(rangeset):
+                ret = rangeset[i].insect(rangeset[j])
+                if ret != None:
+                    raise Exception
+
+
     def edges_reduce(self):
+        v = False
+        vv = False
+        if self.dim == 1:
+            for e in self.edgeset:
+                for r in e.rangeset:
+                    if r.l == 1834040094:
+                        v = True
+            for e in self.in_edgeset:
+                for r in e.rangeset:
+                    if r.l == 3919972310:
+                        vv = True
+
+
         ndict = {}
         for e in self.edgeset:
             if e.node.color in ndict:
@@ -183,15 +247,25 @@ class FDDNode:
 
         for key in ndict.keys():
             if len(ndict[key]) == 1:
+                if v and vv:
+                    print "sig"
+                    print key
+                    print ndict[key]
                 nedgeset.extend(ndict[key])
             if len(ndict[key]) > 1:
-                e = ndict[key][0]
-                for oe in ndict[key][1:]:
-                    e.merge(oe)
+                if v and vv:
+                    print "mul"
+                    print key
+                    print ndict[key]
+                e = FDDEdge.merge_edges(ndict[key])
                 nedgeset.append(e)
+                if v and vv:
+                    print "after"
+                    print e
 
         self.edgeset = nedgeset
-
+        if v and vv:
+            print "bye"
 
 
 
@@ -273,54 +347,127 @@ class FDD:
         return nppc
 
     def color_level(self, level):
-        uniq = [level[0]]
-        level[0].color = 0
-
-        color = 1
-        flag = 0
-
-        for n in level[1:]:
-            for nu in uniq:
-                if nu == n:
-                    n.color = nu.color
-                    for e in n.in_edgeset:
-                        e.node = nu
-                    n.clear()
-                    flag = 1
-                    break
-                else:
-                    continue
-
-            if flag == 0:
-                n.color = color
-                color += 1
-                uniq.append(n)
+        sigdict = {}
+        for n in level:
+            if n.sig in sigdict:
+                sigdict[n.sig].append(n)
             else:
-                flag = 0
+                sigdict[n.sig] = [n]
 
-        print len(level), len(uniq)
+        uniq = []
+        color = 0
+        for key in sigdict.keys():
+            siguniq = []
+            siguniq.append(sigdict[key][0])
+            sigdict[key][0].color = color
+            color += 1
+            for n in sigdict[key][1:]:
+                uniqflag = True
+                for nu in siguniq:
+                    if nu == n:
+                        for e in n.in_edgeset:
+                            e.node = nu
+                        n.clear()
+                        uniqflag = False
+                        break
+                    else:
+                        continue
+                if uniqflag:
+                    n.color = color
+                    color += 1
+                    siguniq.append(n)
+            uniq.extend(siguniq)
+
+        print len(level), color
         return uniq
 
+        #level[0].color = 0
+        #color = 1
+        #uniq = [level[0]]
+        #flag = 0
 
+        #for n in level[1:]:
+        #    for nu in uniq:
+        #        if nu == n:
+        #            n.color = nu.color
+        #            for e in n.in_edgeset:
+        #                e.node = nu
+        #            n.clear()
+        #            flag = 1
+        #            break
+        #        else:
+        #            continue
+
+        #    if flag == 0:
+        #        n.color = color
+        #        color += 1
+        #        uniq.append(n)
+        #    else:
+        #        flag = 0
+
+        #print len(level), len(uniq)
+        #return uniq
 
 
     def fdd_reduce(self, pc, levelnodes, leafnodes):
-
         self.process_leafnodes(pc, leafnodes)
-        self.sig_node(self.root)
-
         reducednodes = {}
         for i in range(len(self.order)-1, -1, -1):
+            for n in levelnodes[i]:
+                n.edges_reduce()
+                self.sig_node(n)
             reducednodes[i] = self.color_level(levelnodes[i])
 
-        for i in range(len(self.order)):
-            for n in reducednodes[i]:
-                n.edges_reduce()
         return reducednodes
 
+    def fdd_match(self, trace, v):
 
-    def fdd_match(self, trace):
-        pass
+        n = self.root
+        t = trace[n.dim]
+        d = -1
+
+        while n.dim != -1:
+            for e in n.edgeset:
+                rmatched = False
+                for r in e.rangeset:
+                    if r.match(t):
+                        if v:
+                            print r
+                            print e
+                        n = e.node
+                        t = trace[n.dim]
+                        rmatched = True
+                        break
+                if rmatched:
+                    break
+        if rmatched:
+            d = n.ppc[0]
+
+        return (d!=-1), d
+
+    def fdd_compressed_match(self, pc, trace):
+
+        n = self.root
+        t = trace[n.dim]
+        d = -1
+
+        while n.dim != -1:
+            for e in n.compressed_edgeset:
+                rmatched = False
+                for r in e.rangeset:
+                    if r.match(t):
+                        n = e.node
+                        t = trace[n.dim]
+                        rmatched = True
+                        break
+                if rmatched:
+                    break
+
+        if rmatched:
+            d = pc[n.ppc[0]][len(self.order)].d
+
+        return (d!=-1), d
+
 
     def prepare_sched(self, n):
         prepdict = {}
@@ -442,6 +589,8 @@ class FDD:
                     edge.node.ppc = self.build_node_pc(pc, node, edge)
                     nextlevel.append(edge.node)
                     node.edgeset.append(edge)
+                node.edges_check()
+
 
                 del node.ppc
                 del bms
@@ -456,8 +605,6 @@ class FDD:
             thislevel = nextlevel
             nextlevel = []
 
-        #self.process_leafnodes(thislevel)
-        #self.sig_node(self.root)
         print "\n*building complete\n"
         return levelnodes, thislevel
 
@@ -518,6 +665,8 @@ class FDD:
             else:
                 rr_output.append(ppc)
 
+        rr_output.sort()
+
 
     def redund_remove(self, leafnodes, rr_output, removed_list):
         ppcdict = {}
@@ -544,7 +693,6 @@ class FDD:
 
 
     def process_leafnodes(self, pc, levelnodes):
-
         nextlevel = []
         leafdict = {}
         leafcolor = 0
@@ -569,7 +717,16 @@ class FDD:
                         for e in n.in_edgeset:
                             e.node = uniq[strkey]
                         n.clear()
+                else:
+                    raise Exception
+            else:
+                raise Exception
+
+        for n in uniq.values():
             n.cost = 1
+
+        #print "leafcolor", leafcolor
+        print len(levelnodes), leafcolor
 
     def sig_node(self, n):
 
@@ -619,18 +776,48 @@ if __name__ == "__main__":
     gc.enable()
     print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+
+    #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+    f.fdd_reduce(pc, levelnodes, leafnodes)
+
+    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    for ti in range(len(traces)):
+        v = False
+        d1 = f.fdd_match(traces[ti], v)
+        d2 = rule.match(pc, traces[ti])
+
+        #if d1 == d2[1]:
+        #    pass
+        #else:
+        #    print t, d1, d2
+        if ti == 779:
+            v = True
+            f.fdd_match(traces[ti],v)
+
+        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+            pass
+        else:
+            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+            v = True
+            d1 = f.fdd_match(traces[ti], v)
+
+
     #print cpc
 
-    print "FDD(mem):", f.fdd_mem(f.root), "bytes"
+    #print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    f3 = FDD(order)
-    levelnodes, leafnodes = f3.build_fdd(cpc)
-    rr_out = []
-    removed_list = []
-    f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
-    print len(removed_list)
-    print len(rr_out)
+    #f3 = FDD(order)
+    #levelnodes, leafnodes = f3.build_fdd(cpc)
+    #rr_out = []
+    #removed_list = []
+    #f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
+
+    #print len(removed_list)
+    #print len(rr_out)
+
+    #final_list = [cpc[x] for x in rr_out]
+    #print final_list
+    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset

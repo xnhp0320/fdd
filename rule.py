@@ -33,6 +33,12 @@ class Range:
         else:
             return False
 
+    def match(self, v):
+        if v >= self.l and v <= self.h:
+            return True
+        else:
+            return False
+
     def within(self, other):
         if not isinstance(other, self.__class__):
             return False
@@ -174,7 +180,7 @@ class IP:
     def prefix(self):
         return self.r.l >> (32- self.prefixlen), self.prefixlen
 
-def rule_parse(pc, line):
+def rule_parse(pc, line, deci):
     #print line
     m = re.match(r"@(?P<sip>\d+\.\d+\.\d+\.\d+/\d+)\t"
                     r"(?P<dip>\d+\.\d+\.\d+\.\d+/\d+)\t"
@@ -201,8 +207,7 @@ def rule_parse(pc, line):
     p = Pro()
     p.parse(m.group('p'))
 
-    d = Decision(0)
-    d.random(2)
+    d = Decision(deci)
 
     pc.append((sip, dip, sp, dp, p, d))
 
@@ -233,15 +238,94 @@ def classify(path):
 
 def load_ruleset(path):
     pc = []
+    deci = 0
     for line in fileinput.input(path):
-        rule_parse(pc, line)
+        deci ^= 1
+        rule_parse(pc, line, deci)
     return pc
 
+def match(pc, trace):
+    l = len(pc[0])
+    lt = len(trace)
 
+    if l != lt + 1:
+        print "wrong config: pc len: ", len(pc[0]), " and trace len: ", len(trace)
+        raise Exception
+
+    matched = True
+    matchno = 0
+
+    for ri in range(len(pc)):
+        rule = pc[ri]
+        matched = True
+
+        for ti in range(len(rule)-1):
+            ret = rule[ti].r.match(trace[ti])
+            if ret == False:
+                matched = False
+                break
+
+        if matched:
+            matchno = ri
+            return matched, matchno
+
+    return False, -1
+
+def load_traces(f):
+    traces = []
+    for line in fileinput.input(f):
+        m = re.match("^(\d+)\s(\d+)\s(\d+)\s(\d+)\s(\d+).*", line)
+        #print m.groups()
+        traces.append([int(x) for x in m.groups()])
+
+    return traces
+
+
+def test_equal(pc1, pc2, traces):
+
+    tuples1 = len(pc1[0]) - 1
+    tuples2 = len(pc2[0]) - 1
+
+    equal = True
+    for ti in range(len(traces)):
+        matched1, matchno1 = match(pc1, traces[ti])
+        matched2, matchno2 = match(pc2, traces[ti])
+
+        if matched1 == matched2:
+            if matched1 == False:
+                continue
+            else:
+                d1 = pc1[matchno1][tuples1].d
+                d2 = pc2[matchno2][tuples2].d
+                if d1 == d2:
+                    continue
+                else:
+                    equal = False
+                    break
+        else:
+            equal = False
+            break
+
+    if equal:
+        print "by this trace, these two pc is equal"
+    else:
+        print "no equal at pc1:", matched1,
+        print matchno1,pc1[matchno1][tuples1].d,
+        print " pc2:", matched2, matchno2, pc2[matchno2][tuples2].d
+        print " at trace: ", ti
+
+
+def pc_equality(pc1, pc2, tf):
+    traces = load_traces(tf)
+    test_equal(pc1, pc2, traces)
 
 
 if __name__ == "__main__":
     pc = load_ruleset(sys.argv[1])
+    traces = load_traces("acl1_2_0.5_-0.1_1K_trace")
+    for t in traces:
+        matched, matchno = match(pc, t)
+        print matchno
     #r1 = Range(l=6,h=11)
     #r2 = Range(l=6,h=10)
     #r3 = r1.minus(r2)
