@@ -17,7 +17,7 @@ from fwsched import PrepSchedData
 RULE_INDEX = 2
 RANGE_SIZE = 8
 POINTER_SIZE = 4
-NODE_SIZE = 1
+NODE_SIZE = 12
 
 
 class PackRange:
@@ -860,7 +860,8 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
     gc.enable()
-    print "FDD(mem):", f.fdd_mem(f.root), "bytes"
+    mem = f.fdd_mem(f.root)
+    print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
 
     cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
