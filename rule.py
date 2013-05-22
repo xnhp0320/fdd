@@ -208,6 +208,7 @@ def rule_parse(pc, line, deci):
     p.parse(m.group('p'))
 
     d = Decision(deci)
+    #d.random(2)
 
     pc.append((sip, dip, sp, dp, p, d))
 

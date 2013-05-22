@@ -84,7 +84,7 @@ class Bitmap:
 def rset_minus(r, rangeset):
     ret = []
     t = rule.Range(l = r.l, h = r.h)
-    for i in range(len(rangeset)):
+    for i in xrange(len(rangeset)):
         if t.l <= t.h:
             if t.l < rangeset[i].l:
                 ret.append(rule.Range(l=t.l, h=min(rangeset[i].l-1, t.h)))
@@ -122,7 +122,7 @@ class FDDEdge:
             if len(self.rangeset) != len(other.rangeset):
                 return False
             else:
-                for i in range(len(self.rangeset)):
+                for i in xrange(len(self.rangeset)):
                     if self.rangeset[i] == other.rangeset[i]:
                         continue
                     else:
@@ -222,7 +222,7 @@ class FDDNode:
         else:
             if len(self.edgeset) != len(other.edgeset):
                 return False
-            for i in range(len(self.edgeset)):
+            for i in xrange(len(self.edgeset)):
                 if self.edgeset[i] == other.edgeset[i]:
                     continue
                 else:
@@ -340,7 +340,7 @@ class FDD:
             #if r.h ==1358954495:
             #    print retl
 
-            for ri in range(len(retl)):
+            for ri in xrange(len(retl)):
                 #print "retl", retl[ri]
                 if not retl[ri].within(r):
                     insect = retl[ri].insect(r)
@@ -390,11 +390,11 @@ class FDD:
         nppc = []
         rs = [(pc[x])[parent.dim].r for x in parent.ppc]
 
-        for ri in range(len(rs)):
+        for ri in xrange(len(rs)):
             for er in edge.rangeset:
                 if er.within(rs[ri]):
                     nppc.append(parent.ppc[ri])
-                    break;
+                    break
 
         return nppc
 
@@ -469,7 +469,7 @@ class FDD:
         reducednodes = [None for x in xrange(len(self.order))]
         #mark = None
         #nodemark = None
-        for i in range(len(self.order)-1, -1, -1):
+        for i in xrange(len(self.order)-1, -1, -1):
             #for n in levelnodes[2]:
             #    for e in n.edgeset:
             #        if e.no == 1302:
@@ -584,7 +584,7 @@ class FDD:
         color = []
         #print preplist
         #print R
-        for ri in range(len(R)):
+        for ri in xrange(len(R)):
             i = R[ri].l
             while i<= R[ri].h:
                 rt = copy.copy(preplist[i].r)
@@ -599,7 +599,7 @@ class FDD:
                 color.append(RC[ri])
                 i = j
 
-        for ci in range(len(color)):
+        for ci in xrange(len(color)):
             ne = FDDEdge()
             for e in n.edgeset:
                 if color[ci] == e.node.color:
@@ -614,7 +614,7 @@ class FDD:
 
 
     def compress(self, levelnodes):
-        for i in range(len(self.order)-1, -1, -1):
+        for i in xrange(len(self.order)-1, -1, -1):
             for n in levelnodes[i]:
                 color, cost, group, preplist = self.prepare_sched(n)
                 #print color, cost, group
@@ -628,9 +628,49 @@ class FDD:
 
 
 
+    def build_bms_fast(self, i, rset, bms, nppc):
+        rset_ppcdict = {}
+
+        for ppc in xrange(len(rset)):
+            if rset[ppc] in rset_ppcdict:
+                rset_ppcdict[rset[ppc]].append(nppc[ppc])
+            else:
+                rset_ppcdict[rset[ppc]] = [nppc[ppc]]
+
+        intl_list = [[] for x in xrange(len(i))]
+        uniq_rset = rset_ppcdict.keys()
+
+        for ari in xrange(len(i)):
+            for r in uniq_rset:
+                if i[ari].within(r):
+                    intl_list[ari].append(r)
+
+        for ari in xrange(len(i)):
+            rtuple = tuple(intl_list[ari])
+            if rtuple in bms:
+                bms[rtuple].append(ari)
+            else:
+                bms[rtuple] = [ari]
+
+        return intl_list, rset_ppcdict
+
+    def build_node_pc_fast(self, intl_list, rset_ppcdict, ari_list):
+        nppc = []
+        for r in intl_list[ari_list[0]]:
+            nppc.extend(rset_ppcdict[r])
+
+        nppc = list(set(nppc))
+        nppc.sort()
+
+        return nppc
+
+
+
+
+
 
     def build_fdd(self, pc):
-        self.root.ppc = range(len(pc))
+        self.root.ppc = xrange(len(pc))
         self.root.no = 0
         thislevel = [self.root]
         nextlevel = []
@@ -649,7 +689,10 @@ class FDD:
                 #if dim == 4:
                 #print i
                 #print len(i)
-                self.build_bms(i, rs, bms)
+                #self.build_bms(i, rs, bms)
+                intl_list, rset_ppcdict = self.build_bms_fast(i, rs, bms, node.ppc)
+                #print len(bms.values())
+                #sys.exit(0)
 
 
                 for equalrs in bms.values():
@@ -663,7 +706,8 @@ class FDD:
                     edge.node.in_edgeset.append(edge)
                     self.nodecnt += 1
                     edge.node.no = self.nodecnt
-                    edge.node.ppc = self.build_node_pc(pc, node, edge)
+                    #edge.node.ppc = self.build_node_pc(pc, node, edge)
+                    edge.node.ppc = self.build_node_pc_fast(intl_list, rset_ppcdict, equalrs)
                     nextlevel.append(edge.node)
                     node.edgeset.append(edge)
                 #node.edges_check()
@@ -718,7 +762,7 @@ class FDD:
     def redund_remove_semantic(self, leafnodes, rr_output, removed_list, pc):
         ppcdict = {}
         conlist = [n.ppc for n in leafnodes]
-        for ni in range(len(conlist)):
+        for ni in xrange(len(conlist)):
             for ppc in conlist[ni]:
                 if ppc in ppcdict:
                     ppcdict[ppc].append(ni)
@@ -753,7 +797,7 @@ class FDD:
 
     def redund_remove(self, leafnodes, rr_output, removed_list):
         ppcdict = {}
-        for ni in range(len(leafnodes)):
+        for ni in xrange(len(leafnodes)):
             for ppc in leafnodes[ni].ppc:
                 if ppc in ppcdict:
                     ppcdict[ppc].append(ni)
@@ -850,7 +894,7 @@ if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
     #print pc
 
-    order=[4,0,1,2,3]
+    order=[1,2,4,3,0]
     f = FDD(order)
 
     #the last one is a wild rule
@@ -904,7 +948,7 @@ if __name__ == "__main__":
 
     final_list = [cpc[x] for x in rr_out]
     ##print final_list
-    rule.pc_equality(pc, final_list, "fw1_2_0.5_-0.1_1K_trace")
+    rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset
