@@ -56,6 +56,23 @@ class Bitmap:
     def strbit(self):
         s = reduce(lambda x,y: str(x) + str(y), self.bits)
         return s
+    def compress(self):
+        i = 0
+        label = ""
+
+        while i < len(self.bits):
+            j = i+1
+            cnt = 1
+            while j < len(self.bits):
+                if self.bits[i] ^ self.bits[j] == 0:
+                    cnt += 1
+                    j += 1
+                else:
+                    break
+            label += str(cnt) + "_" + str(self.bits[i]) +"."
+            i = j
+        return label
+
 
     def intbit(self):
         y = 0
@@ -360,11 +377,13 @@ class FDD:
                 num += 1
 
             #print bitmap.intbit()
+            #bits = bitmap.intbit()
+            label = bitmap.compress()
 
-            if bitmap.intbit() in bms:
-                bms[bitmap.intbit()].append(tnum)
+            if label in bms:
+                bms[label].append(tnum)
             else:
-                bms[bitmap.intbit()] = [tnum]
+                bms[label] = [tnum]
             tnum += 1
 
     def build_node_pc(self, pc, parent, edge):
@@ -882,9 +901,9 @@ if __name__ == "__main__":
     print len(removed_list)
     print len(rr_out)
 
-    #final_list = [cpc[x] for x in rr_out]
+    final_list = [cpc[x] for x in rr_out]
     ##print final_list
-    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
+    rule.pc_equality(pc, final_list, "fw1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset
