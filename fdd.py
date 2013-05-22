@@ -568,7 +568,7 @@ class FDD:
         for ri in range(len(R)):
             i = R[ri].l
             while i<= R[ri].h:
-                rt = preplist[i].r
+                rt = copy.copy(preplist[i].r)
                 j = i+1
                 while j <= R[ri].h:
                     if rt.h == preplist[j].r.l -1:
@@ -828,7 +828,7 @@ class FDD:
 
 
 if __name__ == "__main__":
-    pc = rule.load_ruleset("acl1_2_0.5_-0.1_1K")
+    pc = rule.load_ruleset(sys.argv[1])
     #print pc
 
     order=[4,0,1,2,3]
@@ -847,26 +847,26 @@ if __name__ == "__main__":
     cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
     #f.fdd_reduce(pc, levelnodes, leafnodes)
 
-    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    for ti in range(len(traces)):
-        d1 = f.fdd_compressed_match(pc, traces[ti])
-        d2 = rule.match(pc, traces[ti])
+    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    #for ti in range(len(traces)):
+    #    d1 = f.fdd_match( traces[ti])
+    #    d2 = rule.match(pc, traces[ti])
 
-        #if d1 == d2[1]:
-        #    pass
-        #else:
-        #    print t, d1, d2
-        #if ti == 779:
-        #    v = True
-        #    f.fdd_match(traces[ti],v)
+    #    #if d1 == d2[1]:
+    #    #    pass
+    #    #else:
+    #    #    print t, d1, d2
+    #    #if ti == 779:
+    #    #    v = True
+    #    #    f.fdd_match(traces[ti],v)
 
-        #if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
-        if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
-            pass
-        else:
-            #print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-            print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
-            #d1 = f.fdd_match(traces[ti], v)
+    #    if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+    #        pass
+    #    else:
+    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+    #        #d1 = f.fdd_match(traces[ti], v)
 
 
     #print cpc
@@ -882,9 +882,9 @@ if __name__ == "__main__":
     print len(removed_list)
     print len(rr_out)
 
-    final_list = [cpc[x] for x in rr_out]
-    #print final_list
-    rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
+    #final_list = [cpc[x] for x in rr_out]
+    ##print final_list
+    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset

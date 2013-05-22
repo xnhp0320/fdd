@@ -6,7 +6,7 @@ from rule import Range
 
 class PrepSchedData:
     def __init__(self, r, color, cost):
-        self.r = copy.copy(r)
+        self.r = r
         self.color = color
         self.cost = cost
 
