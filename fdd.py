@@ -670,6 +670,7 @@ class FDD:
 
 
     def build_fdd(self, pc):
+        print "*building begins"
         self.root.ppc = xrange(len(pc))
         self.root.no = 0
         thislevel = [self.root]
@@ -825,8 +826,6 @@ class FDD:
         leafcolor = 0
         uniq = {}
         for n in levelnodes:
-            if n.no == 133:
-                print "touch"
             if n.sig == -1:
                 if len(n.ppc) != 0:
                 # n is the leaf
@@ -892,12 +891,13 @@ class FDD:
 
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
-    #print pc
+    #pc = rule.pc_syn(400,5,2)
+    print "laod rulset: ", len(pc)
 
     order=[1,2,4,3,0]
     f = FDD(order)
 
-    #the last one is a wild rule
+    ##the last one is a wild rule
     gc.disable()
     try:
         levelnodes,leafnodes = f.build_fdd(pc)
@@ -939,16 +939,20 @@ if __name__ == "__main__":
 
     f3 = FDD(order)
     levelnodes, leafnodes = f3.build_fdd(cpc)
+    #levelnodes, leafnodes = f3.build_fdd(pc)
     rr_out = []
     removed_list = []
     f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
+    #f3.redund_remove(leafnodes, rr_out, removed_list)
 
     print len(removed_list)
     print len(rr_out)
+    #print removed_list
+    print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
 
-    final_list = [cpc[x] for x in rr_out]
+    #final_list = [cpc[x] for x in rr_out]
     ##print final_list
-    rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
+    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset

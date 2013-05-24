@@ -111,6 +111,10 @@ class Port:
         (self.r.l, self.r.h) = (int(m.group(1)), int(m.group(2)))
         #print self
 
+    def random(self):
+        self.r.l = random.randint(0, (1<<16) - 1)
+        self.r.h = random.randint(self.r.l + 1, (1<<16)-1)
+
 class Pro:
     def __init__(self):
         self.r = Range(b=8)
@@ -137,6 +141,10 @@ class Pro:
             self.r.l = int(m.group(1), 16)
             self.r.h = int(m.group(1), 16)
        # print self
+
+    def random(self):
+        self.r.l = random.randint(0, (1<<8)-1)
+        self.r.h = self.r.l
 
 class Decision:
     def __init__(self,d):
@@ -180,6 +188,19 @@ class IP:
     def prefix(self):
         return self.r.l >> (32- self.prefixlen), self.prefixlen
 
+    def random(self, prefix):
+        v = random.randint(0, (1<<prefix) -1)
+        self.r.l = v << (32 - prefix)
+        self.r.h = self.r.l + (1<<(32-prefix)) - 1
+        self.prefixlen = prefix
+
+        self.b1 = self.r.l >> 24
+        self.b2 = (self.r.l  & 0x00FF0000 ) >> 16
+        self.b3 = (self.r.l & 0x0000FF00) >> 8
+        self.b4 = self.r.l & 0xFF
+
+
+
 def rule_parse(pc, line, deci):
     #print line
     m = re.match(r"@(?P<sip>\d+\.\d+\.\d+\.\d+/\d+)\t"
@@ -190,6 +211,7 @@ def rule_parse(pc, line, deci):
 
 
     if m is None:
+        print "parse error"
         print line
 
     sip = IP()
@@ -319,6 +341,45 @@ def test_equal(pc1, pc2, traces):
 def pc_equality(pc1, pc2, tf):
     traces = load_traces(tf)
     test_equal(pc1, pc2, traces)
+
+
+def pc_syn(ipnum, portnum, pronum):
+    pc = []
+    iplist = []
+    portlist = []
+    prolist= []
+
+    for i in xrange(ipnum):
+        ip = IP()
+        ip.random(24)
+        iplist.append(ip)
+
+    for i in xrange(portnum):
+        port = Port()
+        port.random()
+        portlist.append(port)
+
+    for i in xrange(pronum):
+        pro = Pro()
+        pro.random()
+        prolist.append(pro)
+
+    for i in xrange(ipnum):
+        srcip = iplist[random.randint(0, len(iplist)-1)]
+        dstip = iplist[random.randint(0, len(iplist)-1)]
+        for j in xrange(portnum):
+            sp = portlist[random.randint(0, len(portlist) - 1)]
+            dp = portlist[random.randint(0, len(portlist) - 1)]
+            for k in xrange(pronum):
+                pro = prolist[random.randint(0, len(prolist) -1 )]
+                d = Decision(0)
+                d.random(2)
+                pc.append((srcip, dstip, sp, dp, pro, d))
+
+    rule_parse(pc, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
+
+    return pc
+
 
 
 if __name__ == "__main__":
