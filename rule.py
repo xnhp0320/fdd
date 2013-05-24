@@ -90,6 +90,41 @@ class Range:
             else:
                 return None
 
+    @staticmethod
+    def prefix_entries_r(l, h, bits, prefix_list):
+        c = 1
+        b = 0
+
+        def tailzeros(l, bits):
+            z = 0
+            if l == 0:
+                return bits
+
+            while z < bits:
+                if l & 1 == 1:
+                    return z
+                else:
+                    z += 1
+                    l >>= 1
+
+        z = tailzeros(l, bits)
+        while l+b <= h and b <= (1<<z) - 1:
+            b<<=1
+            b|=1
+        b >>= 1
+
+        prefix_list.append(Range(l, l+b))
+        if l+b+1 <= h:
+            c += Range.prefix_entries_r(l+b+1, h, bits, prefix_list)
+
+        return c
+
+    def prefix_entries(self):
+        prefix_list = []
+        c = Range.prefix_entries_r(self.l, self.h, self.bits, prefix_list)
+        #print prefix_list, len(prefix_list)
+        return c
+
 
 
 class Port:
@@ -263,8 +298,8 @@ def load_ruleset(path):
     pc = []
     deci = 0
     for line in fileinput.input(path):
-        deci ^= 1
         rule_parse(pc, line, deci)
+        deci += 1
     return pc
 
 def match(pc, trace):
@@ -381,14 +416,32 @@ def pc_syn(ipnum, portnum, pronum):
     return pc
 
 
+def tcam_entry_raw(pc):
+    total = 0
+    for r in pc:
+        n = 1
+        for i in xrange(len(r)-1):
+            n *= r[i].r.prefix_entries()
+        #if n > 1:
+        #    print r, n
+        total += n
+    return total
+
+
+
 
 if __name__ == "__main__":
     pc = load_ruleset(sys.argv[1])
-    traces = load_traces("acl1_2_0.5_-0.1_1K_trace")
-    for t in traces:
-        matched, matchno = match(pc, t)
-        print matchno
-    #r1 = Range(l=6,h=11)
+    print len(pc)
+    print tcam_entry_raw(pc)
+    #traces = load_traces("acl1_2_0.5_-0.1_1K_trace")
+    #for t in traces:
+    #    matched, matchno = match(pc, t)
+    #    print matchno
+    #r1 = Range(l=1024,h=65535)
+    #p = r1.prefix_entries()
+    #print p
+
     #r2 = Range(l=6,h=10)
     #r3 = r1.minus(r2)
 
