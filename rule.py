@@ -378,7 +378,7 @@ def pc_equality(pc1, pc2, tf):
     test_equal(pc1, pc2, traces)
 
 
-def pc_syn(ipnum, portnum, pronum):
+def pc_syn(ipnum, portnum, pronum, num):
     pc = []
     iplist = []
     portlist = []
@@ -398,18 +398,22 @@ def pc_syn(ipnum, portnum, pronum):
         pro = Pro()
         pro.random()
         prolist.append(pro)
-
-    for i in xrange(ipnum):
-        srcip = iplist[random.randint(0, len(iplist)-1)]
-        dstip = iplist[random.randint(0, len(iplist)-1)]
-        for j in xrange(portnum):
-            sp = portlist[random.randint(0, len(portlist) - 1)]
-            dp = portlist[random.randint(0, len(portlist) - 1)]
-            for k in xrange(pronum):
-                pro = prolist[random.randint(0, len(prolist) -1 )]
-                d = Decision(0)
-                d.random(2)
-                pc.append((srcip, dstip, sp, dp, pro, d))
+    try:
+        for i in xrange(ipnum):
+            srcip = iplist[random.randint(0, len(iplist)-1)]
+            dstip = iplist[random.randint(0, len(iplist)-1)]
+            for j in xrange(portnum):
+                sp = portlist[random.randint(0, len(portlist) - 1)]
+                dp = portlist[random.randint(0, len(portlist) - 1)]
+                for k in xrange(pronum):
+                    pro = prolist[random.randint(0, len(prolist) -1 )]
+                    d = Decision(0)
+                    d.random(2)
+                    pc.append((srcip, dstip, sp, dp, pro, d))
+                    if len(pc) == num:
+                        raise Exception
+    except Exception:
+        pass
 
     rule_parse(pc, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
 

@@ -319,7 +319,58 @@ class FDDNode:
         #if v and vv:
         #    print "bye"
 
+class LinePoints:
+    def __init__(self, cord, flag):
+        self.x = cord
+        #self.i = ri
+        self.s = flag
 
+    def __cmp__(self, other):
+        if self.x < other.x:
+            return -1
+        if self.x > other.x:
+            return 1
+        if self.x == other.x:
+#stating points are higher than ending points
+            if self.s > other.s:
+                return -1
+            if self.s < other.s:
+                return 1
+            if self.s == other.s:
+                return 0
+
+    def __repr__(self):
+        return (self.x, self.s).__repr__()
+
+def build_line_points(rset):
+    rl = list(set(rset))
+    pl = []
+
+    for ri in xrange(len(rl)):
+        pl.append(LinePoints(rl[ri].l,  1))
+        pl.append(LinePoints(rl[ri].h, -1))
+
+    pl.sort()
+
+    prev = pl[0]
+    l = len(pl)
+    i = 1
+    while i < l:
+        if pl[i].x == prev.x:
+            if (pl[i].s>0) == (prev.s>0):
+                if prev.s > 0:
+                    prev.s += 1
+                else:
+                    prev.s -= 1
+                del pl[i]
+                i -= 1
+                l -= 1
+        #print prev
+        prev = pl[i]
+        i+=1
+
+    #print pl
+    return pl
 
 
 class FDD:
@@ -330,6 +381,36 @@ class FDD:
         self.nodecnt = 0
         self.edgecnt = 0
         self.rangecnt = 0
+
+    @staticmethod
+    def build_interval_fast(rset):
+        pl = build_line_points(rset)
+        iv = []
+        events = {}
+
+        stack = pl[0].s
+        prev = pl[0].x
+        prev_p = pl[0]
+
+        for p in pl[1:]:
+
+            if p.s > 0:
+                if stack != 0:
+                    if prev_p.s < 0 and prev == p.x:
+                        pass
+                    else:
+                        iv.append(rule.Range(prev, p.x-1))
+                prev = p.x
+                stack += p.s
+            else:
+                iv.append(rule.Range(prev, p.x))
+                prev = p.x+1
+                stack += p.s
+
+            prev_p = p
+
+        return iv
+
 
     @staticmethod
     def build_interval(rset):
@@ -700,7 +781,7 @@ class FDD:
                     #if rule.Range(l=0,h=255) not in rs:
                     #    print rs
 
-                i = FDD.build_interval(rs)
+                i = FDD.build_interval_fast(rs)
                 #if dim == 4:
                 #print i
                 #print len(i)
@@ -904,9 +985,10 @@ class FDD:
 
 
 if __name__ == "__main__":
-    pc = rule.load_ruleset(sys.argv[1])
-    #pc = rule.pc_syn(400,5,2)
+    #pc = rule.load_ruleset(sys.argv[1])
+    pc = rule.pc_syn(700,38,10, 2000)
     print "laod rulset: ", len(pc)
+    #print "tcam raw", rule.tcam_entry_raw(pc)
 
     order=[4,0,1,2,3]
     f = FDD(order)
@@ -965,6 +1047,8 @@ if __name__ == "__main__":
     print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
 
     #final_list = [cpc[x] for x in rr_out]
+    #print "tcam raw", rule.tcam_entry_raw(cpc)
+
     ##print final_list
     #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
 
