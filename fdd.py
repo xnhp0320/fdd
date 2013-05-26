@@ -135,6 +135,9 @@ class FDDEdge:
     def __repr__(self):
         return self.rangeset.__repr__()
 
+    def __cmp__(self, other):
+        return self.rangeset[0].__cmp__(other.rangeset[0])
+
     @staticmethod
     def merge_edges(edges):
         rangeset = []
@@ -308,7 +311,10 @@ class FDDNode:
                 #    print "after"
                 #    print e
 
+
+
         self.edgeset = nedgeset
+        self.edgeset.sort()
         #self.edges_check()
         #if v and vv:
         #    print "bye"
@@ -433,6 +439,8 @@ class FDD:
             uniq.extend(siguniq)
 
         print len(level), color
+        for ni in xrange(len(uniq)):
+            uniq[ni].sig = uniq[ni].color
 
         return uniq
 
@@ -445,6 +453,7 @@ class FDD:
         #    for nu in uniq:
         #        if nu == n:
         #            n.color = nu.color
+        #            #n.sig = n.color
         #            for e in n.in_edgeset:
         #                e.node = nu
         #            n.clear()
@@ -455,10 +464,14 @@ class FDD:
 
         #    if flag == 0:
         #        n.color = color
+        #        #n.sig = color
         #        color += 1
         #        uniq.append(n)
         #    else:
         #        flag = 0
+
+        #for ni in xrange(len(uniq)):
+        #    uniq[ni].sig = uniq[ni].color
 
         #print len(level), len(uniq)
         #return uniq
