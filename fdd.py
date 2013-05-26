@@ -325,7 +325,8 @@ class FDD:
         self.edgecnt = 0
         self.rangecnt = 0
 
-    def build_interval(self, rset):
+    @staticmethod
+    def build_interval(rset):
 #YOU HAVE TO MAKE SURE EVERY RANGE IS NEW!!!
 #NOT A REFERENCE!!!
         rl = list(set(rset))
@@ -627,8 +628,8 @@ class FDD:
                 self.make_compressed_edgeset(n, sched.R, sched.RC, preplist)
 
 
-
-    def build_bms_fast(self, i, rset, bms, nppc):
+    @staticmethod
+    def build_bms_fast(i, rset, bms, nppc):
         rset_ppcdict = {}
 
         for ppc in xrange(len(rset)):
@@ -686,12 +687,12 @@ class FDD:
                     #if rule.Range(l=0,h=255) not in rs:
                     #    print rs
 
-                i = self.build_interval(rs)
+                i = FDD.build_interval(rs)
                 #if dim == 4:
                 #print i
                 #print len(i)
                 #self.build_bms(i, rs, bms)
-                intl_list, rset_ppcdict = self.build_bms_fast(i, rs, bms, node.ppc)
+                intl_list, rset_ppcdict = FDD.build_bms_fast(i, rs, bms, node.ppc)
                 #print len(bms.values())
                 #sys.exit(0)
 
@@ -894,7 +895,7 @@ if __name__ == "__main__":
     #pc = rule.pc_syn(400,5,2)
     print "laod rulset: ", len(pc)
 
-    order=[1,2,4,3,0]
+    order=[4,0,1,2,3]
     f = FDD(order)
 
     ##the last one is a wild rule
