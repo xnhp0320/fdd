@@ -378,6 +378,44 @@ def pc_equality(pc1, pc2, tf):
     traces = load_traces(tf)
     test_equal(pc1, pc2, traces)
 
+def pc_uniform(ipnum, num):
+    pc = []
+    iplist = []
+    portlist = []
+    prolist= []
+
+    for i in xrange(ipnum):
+        ip = IP()
+        ip.random(24)
+        iplist.append(ip)
+
+    port = Port()
+    port.r.l = 0
+    port.r.h = 65535
+
+    pro = Pro()
+    pro.r.l = 6
+    pro.r.h = 6
+
+
+    while True:
+        srcip = iplist[random.randint(0, len(iplist)-1)]
+        dstip = iplist[random.randint(0, len(iplist)-1)]
+        sp = port
+        dp = port
+        pro = pro
+        d = Decision(0)
+        d.random(2)
+        pc.append((srcip, dstip, sp, dp, pro, d))
+        if len(pc) == num:
+            break
+
+    rule_parse(pc, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
+
+    return pc
+
+
+
 
 def pc_syn(ipnum, portnum, pronum, num):
     pc = []

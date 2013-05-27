@@ -27,6 +27,7 @@ def redund_remove(pc, order):
     #print removed_list
     print "original: ", len(pc)
     print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
+    return [pc[x] for x in rr_out]
 
 
 
@@ -54,7 +55,7 @@ def firewall_compressor_algo(pc, order):
     print len(rr_out)
     print "original: ", len(pc)
     print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
-    return len(rr_out)
+    return [cpc[x] for x in rr_out]
 
 
 
@@ -63,12 +64,16 @@ if __name__ == "__main__":
     sys.setrecursionlimit(10000)
     pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
+    #pc = rule.pc_uniform(1000, 2000)
     print "laod rulset: ", len(pc)
+    print pc
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order=[4,0,1,2,3]
-    #firewall_compressor_algo(pc, order)
-    redund_remove(pc, order)
+    order=[1,2,4,3,0]
+    lst = firewall_compressor_algo(pc, order)
+    print rule.tcam_entry_raw(lst)
+    print rule.tcam_entry_raw(pc)
+    #redund_remove(pc, order)
 
     #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
     #wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)

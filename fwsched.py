@@ -78,7 +78,7 @@ if __name__ == "__main__":
 #color is per task(range)
     color = [0,1,2,1,0]
 #group is a dict for color
-    group ={0:[0,4], 1:[1,3],2:[3]}
+    group ={0:[0,4], 1:[1,3],2:[2]}
 
     sched = Scheduler(color, cost, group)
     sched.FSA_cost(0,4)

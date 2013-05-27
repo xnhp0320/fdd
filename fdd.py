@@ -9,6 +9,7 @@ import rule
 import signal
 import copy
 import gc
+import pdb
 from fwsched import Scheduler
 from fwsched import PrepSchedData
 
@@ -701,6 +702,8 @@ class FDD:
                     ne.node = e.node
                     ne.rangeset.append(rangeset[ci])
             n.compressed_edgeset.append(ne)
+
+        #pdb.set_trace()
 
         #return rangeset
         #print rangeset
