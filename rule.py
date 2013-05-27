@@ -300,6 +300,7 @@ def load_ruleset(path):
     for line in fileinput.input(path):
         deci ^= 1
         rule_parse(pc, line, deci)
+        #deci += 1
     return pc
 
 def match(pc, trace):

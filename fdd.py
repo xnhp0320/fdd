@@ -985,8 +985,8 @@ class FDD:
 
 
 if __name__ == "__main__":
-    #pc = rule.load_ruleset(sys.argv[1])
-    pc = rule.pc_syn(700,38,10, 2000)
+    pc = rule.load_ruleset(sys.argv[1])
+    #pc = rule.pc_syn(700,38,10, 2000)
     print "laod rulset: ", len(pc)
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
