@@ -78,24 +78,9 @@ def permutations(dl):
 
     return ret
 
-
-
-
-
-if __name__ == "__main__":
-
-    sys.setrecursionlimit(10000)
-    pc = rule.load_ruleset(sys.argv[1])
-    #pc = rule.pc_syn(700,38,10, 2000)
-    #pc = rule.pc_uniform(1000, 2000)
-    print "laod rulset: ", len(pc)
-    #print pc
-    #print "tcam raw", rule.tcam_entry_raw(pc)
-
-    fields = [0, 1, 2, 3, 4]
+def find_optimal_permutations(fields):
     order_list = permutations(fields)
     print len(order_list)
-
 
     try:
         cr_list = []
@@ -113,20 +98,33 @@ if __name__ == "__main__":
     print order_list[index], crmin
 
 
+
+if __name__ == "__main__":
+
+    sys.setrecursionlimit(10000)
+    pc = rule.load_ruleset(sys.argv[1])
+    #pc = rule.pc_syn(700,38,10, 2000)
+    #pc = rule.pc_uniform(1000, 2000)
+    print "laod rulset: ", len(pc)
+    #print pc
+    #print "tcam raw", rule.tcam_entry_raw(pc)
+
+    order = [0, 1, 2, 3, 4]
+
     #redund_remove(pc, order)
 
-    #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
-    #wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
+    ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
+    wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
     ##rule.rule_parse(wx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
-    #xw = filter(lambda x: not x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
+    xw = filter(lambda x: not x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
     ##rule.rule_parse(xw, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
-    #xx = filter(lambda x: not x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
+    xx = filter(lambda x: not x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
     ##rule.rule_parse(xx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
 
-    #wwc = firewall_compressor_algo(ww, order)
-    #wxc = firewall_compressor_algo(wx, order)
-    #xwc = firewall_compressor_algo(xw, order)
-    #xxc = firewall_compressor_algo(xx, order)
+    wwc = firewall_compressor_algo(ww, order)
+    wxc = firewall_compressor_algo(wx, order)
+    xwc = firewall_compressor_algo(xw, order)
+    xxc = firewall_compressor_algo(xx, order)
 
-    #print float(wwc+wxc+xwc+xxc) / len(pc)
+    print float(len(wwc)+len(wxc)+len(xwc)+len(xxc)) / len(pc)
 

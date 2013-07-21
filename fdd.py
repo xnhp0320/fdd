@@ -19,6 +19,7 @@ RULE_INDEX = 2
 RANGE_SIZE = 8
 POINTER_SIZE = 4
 NODE_SIZE = 12
+MAXDIM = 5
 
 
 class PackRange:
@@ -764,9 +765,6 @@ class FDD:
 
 
 
-
-
-
     def build_fdd(self, pc):
         print "*building begins"
         self.root.ppc = xrange(len(pc))
@@ -1049,11 +1047,11 @@ if __name__ == "__main__":
     #print removed_list
     print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
 
-    #final_list = [cpc[x] for x in rr_out]
+    final_list = [cpc[x] for x in rr_out]
     #print "tcam raw", rule.tcam_entry_raw(cpc)
 
     ##print final_list
-    #rule.pc_equality(pc, final_list, "acl1_2_0.5_-0.1_1K_trace")
+    rule.pc_equality(pc, final_list, "fw1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset
