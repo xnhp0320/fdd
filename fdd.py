@@ -219,6 +219,7 @@ class FDDNode:
         self.cost = -1
         self.no = -1
 
+        self.dimavail = None
         self.compressed_edgeset = []
 
     def __eq__(self,other):
@@ -763,6 +764,106 @@ class FDD:
 
         return nppc
 
+    @staticmethod
+    def choose_dim(node, pc):
+
+        d = node.dimavail[0]
+        chd = d
+        chdi = 0
+        rs = [(pc[x])[d].r for x in node.ppc]
+        i = FDD.build_interval_fast(rs)
+
+        inum = 0
+
+        for xr in rs:
+            for itl in i:
+                if itl.within(xr):
+                    inum += 1
+
+        chi = i
+
+        for di in xrange(len(node.dimavail)):
+            j = 0
+            rs = [(pc[x])[node.dimavail[di]].r for x in node.ppc]
+            i = FDD.build_interval_fast(rs)
+
+            for xr in rs:
+               for itl in i:
+                   if itl.within(xr):
+                       j+=1
+
+            if j < inum:
+                chd = node.dimavail[di]
+                chdi = di
+                inum = len(i)
+                chi = i
+
+        del node.dimavail[chdi]
+        #print "avail", node.dimavail
+        return chd, chi
+
+
+
+    def build_pdd(self, pc):
+
+        print "*building pipeline begins"
+        self.root.ppc = xrange(len(pc))
+        self.root.no = 0
+        self.root.dimavail = range(0,MAXDIM)
+        thislevel = [self.root]
+        nextlevel = []
+        levelnodes = []
+        bms = {}
+
+        for t in xrange(MAXDIM):
+            for node in thislevel:
+                node.dim, i = FDD.choose_dim(node, pc)
+                #print node.dim
+                rs = [(pc[x])[node.dim].r for x in node.ppc]
+                intl_list, rset_ppcdict = FDD.build_bms_fast(i, rs, bms, node.ppc)
+                #print len(bms.values())
+                #sys.exit(0)
+                for equalrs in bms.values():
+                    edge = FDDEdge()
+                    edge.no = self.edgecnt
+                    self.edgecnt += 1
+                    for ri in equalrs:
+                        edge.rangeset.append(i[ri])
+                        self.rangecnt += 1
+                    edge.node = FDDNode()
+                    edge.node.in_edgeset.append(edge)
+                    self.nodecnt += 1
+                    edge.node.no = self.nodecnt
+                    #edge.node.ppc = self.build_node_pc(pc, node, edge)
+                    edge.node.ppc = self.build_node_pc_fast(intl_list, rset_ppcdict, equalrs)
+                    #print edge.node.ppc
+                    edge.node.dimavail = copy.copy(node.dimavail)
+
+                    nextlevel.append(edge.node)
+                    node.edgeset.append(edge)
+                #node.edges_check()
+
+
+                del node.ppc
+                del bms
+                bms = {}
+                #if node.no == 133:
+                #    print node.edgeset
+                #for e in node.edgeset:
+                #    for r in e.rangeset:
+                #        if r.l == 1834040094:
+                #            print e
+
+            levelnodes.append(thislevel)
+            print "finish level"
+            print "nodecnt", self.nodecnt
+            print "edgecnt", self.edgecnt
+            print "rangecnt", self.rangecnt
+            thislevel = nextlevel
+            nextlevel = []
+
+        print "\n*building complete\n"
+        return levelnodes, thislevel
 
 
     def build_fdd(self, pc):
