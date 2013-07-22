@@ -972,14 +972,17 @@ class FDD:
         #print raw_pc
         return pack_raw_pc(raw_pc)
 
-    def output_tcamsplit(self, reducednodes):
+    def output_tcamsplit(self, pc, reducednodes):
         levellist = [[] for x in xrange(MAXDIM+1)]
 
         for d in xrange(MAXDIM):
             for n in reducednodes[d]:
                 for e in n.compressed_edgeset:
                     for r in e.rangeset:
-                        levellist[n.dim].append((n.color,r,e.node.color))
+                        if d != MAXDIM - 1:
+                            levellist[n.dim].append((n.color,r,e.node.color))
+                        else:
+                            levellist[n.dim].append((n.color,r,pc[e.node.ppc[0]][MAXDIM].d))
 
 
         sort_table_list = [ [] for x in xrange(MAXDIM)]
@@ -1005,7 +1008,7 @@ class FDD:
             tcam_entries = 0
             for entry in sort_table_list[d]:
                 tcam_entries += entry[1].prefix_entries()
-                #print entry
+                print entry
             print len(sort_table_list[d])
             print tcam_entries
             i+=1
@@ -1018,7 +1021,7 @@ class FDD:
         print "*compress the ruleset TCAM SPLIT"
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
-        return self.output_tcamsplit(reducednodes)
+        return self.output_tcamsplit(pc, reducednodes)
 
 
     def redund_remove_semantic(self, leafnodes, rr_output, removed_list, pc):

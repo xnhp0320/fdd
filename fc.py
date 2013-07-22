@@ -47,7 +47,26 @@ def tcam_split(pc, order):
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
     #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
-    f.tcam_split(pc, levelnodes, leafnodes)
+    return f.tcam_split(pc, levelnodes, leafnodes)
+
+def tcam_split_match(pc, order, sort_table_list, traces):
+    next_id = 0
+    for ti in xrange(len(traces)):
+        t = traces[ti]
+        for x in xrange(fdd.MAXDIM):
+            d = order[x]
+            tv = t[d]
+            for entry in sort_table_list[x]:
+                if entry[0] == next_id:
+                    if entry[1].match(tv):
+                        next_id = entry[2]
+                        break
+
+
+
+
+
+
 
 
 def firewall_compressor_algo(pc, order):
