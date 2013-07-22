@@ -94,6 +94,7 @@ def tcam_split_entries(pc, tcam):
     print "tcam raw entries: ", tcam_raw
     print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
+
 def firewall_compressor_algo(pc, order):
 
     f = FDD(order)
