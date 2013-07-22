@@ -50,24 +50,49 @@ def tcam_split(pc, order):
     return f.tcam_split(pc, levelnodes, leafnodes)
 
 def tcam_split_match(pc, order, sort_table_list, traces):
-    next_id = 0
+
     for ti in xrange(len(traces)):
         t = traces[ti]
-        for x in xrange(fdd.MAXDIM):
+        next_id = 0
+        for x in xrange(MAXDIM):
             d = order[x]
+            #print "d", d
             tv = t[d]
-            for entry in sort_table_list[x]:
+            #print "tv", tv
+            table_matched = False
+            for entry in sort_table_list[d]:
                 if entry[0] == next_id:
                     if entry[1].match(tv):
+                        #print entry[1], "check", tv
                         next_id = entry[2]
+                        table_matched = True
+                        #print "next_id", next_id
                         break
+            if table_matched == False:
+                next_id = -1
+                break
 
+        d = rule.match(pc, t)
+        if d[0] == table_matched and d[1] == next_id:
+            pass
+        else:
+            print ti
+            print t
+            print d[0], d[1]
+            print table_matched, next_id
+            sys.exit(0)
 
+def tcam_split_entries(pc, tcam):
+    tcam_entries = 0
 
+    for d in xrange(MAXDIM):
+        for entry in tcam[d]:
+            tcam_entries += entry[1].prefix_entries()
 
-
-
-
+    tcam_raw = rule.tcam_entry_raw(pc)
+    print "tcam split entries: ", tcam_entries
+    print "tcam raw entries: ", tcam_raw
+    print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
 def firewall_compressor_algo(pc, order):
 
@@ -146,27 +171,33 @@ if __name__ == "__main__":
     #print pc
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order = [4,1,2,3,0]
+    #order = [4,1,2,3,0]
+    order = [0,1,2,3,4]
 
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
+    tcam = tcam_split(pc, order)
+    #traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
+    #tcam_split_match(pc, order, tcam, traces)
+    tcam_split_entries(pc, tcam)
 
-    ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
-    wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
-    ##rule.rule_parse(wx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
-    xw = filter(lambda x: not x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
-    ##rule.rule_parse(xw, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
-    xx = filter(lambda x: not x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
-    ##rule.rule_parse(xx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
+
+    #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
+    #wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
+    ###rule.rule_parse(wx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
+    #xw = filter(lambda x: not x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
+    ###rule.rule_parse(xw, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
+    #xx = filter(lambda x: not x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
+    ###rule.rule_parse(xx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
 
     #wwc = firewall_compressor_algo(ww, order)
     #wxc = firewall_compressor_algo(wx, order)
     #xwc = firewall_compressor_algo(xw, order)
     #xxc = firewall_compressor_algo(xx, order)
-    tcam_split(ww, order)
-    tcam_split(wx, order)
-    tcam_split(xw, order)
-    tcam_split(xx, order)
+    #tcam_split(ww, order)
+    #tcam_split(wx, order)
+    #tcam_split(xw, order)
+    #tcam_split(xx, order)
 
     #print float(len(wwc)+len(wxc)+len(xwc)+len(xxc)) / len(pc)
 
