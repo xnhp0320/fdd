@@ -33,17 +33,37 @@ if __name__ == "__main__":
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
+    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    #for ti in range(len(traces)):
+    #    d1 = f.fdd_match( traces[ti])
+    #    d2 = rule.match(pc, traces[ti])
+
+    #    #if d1 == d2[1]:
+    #    #    pass
+    #    #else:
+    #    #    print t, d1, d2
+    #    #if ti == 779:
+    #    #    v = True
+    #    #    f.fdd_match(traces[ti],v)
+
+    #    if d1[0] == d2[0] and pc[d1[1]][fdd.MAXDIM].d == pc[d2[1]][fdd.MAXDIM].d:
+    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+    #        pass
+    #    else:
+    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+    #        #d1 = f.fdd_match(traces[ti], v)
 
 
-    f1 = fdd.FDD([0,1,2,3,4])
-    gc.disable()
-    try:
-        levelnodes,leafnodes = f1.build_fdd(pc)
-    except KeyboardInterrupt:
-        print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
-    gc.enable()
-    mem = f1.fdd_mem(f1.root)
-    print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+    #f1 = fdd.FDD([4,1,2,3,0])
+    #gc.disable()
+    #try:
+    #    levelnodes,leafnodes = f1.build_fdd(pc)
+    #except KeyboardInterrupt:
+    #    print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+    #gc.enable()
+    #mem = f1.fdd_mem(f1.root)
+    #print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
 
 

@@ -248,6 +248,7 @@ def rule_parse(pc, line, deci):
     if m is None:
         print "parse error"
         print line
+        return
 
     sip = IP()
     sip.parse(m.group('sip'))
@@ -298,9 +299,9 @@ def load_ruleset(path):
     pc = []
     deci = 0
     for line in fileinput.input(path):
-        deci ^= 1
+        #deci ^= 1
         rule_parse(pc, line, deci)
-        #deci += 1
+        deci += 1
     return pc
 
 def match(pc, trace):

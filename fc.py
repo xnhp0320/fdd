@@ -31,6 +31,24 @@ def redund_remove(pc, order):
     return [pc[x] for x in rr_out]
 
 
+def tcam_split(pc, order):
+    if len(pc) == 0:
+        return
+
+    f = FDD(order)
+
+    gc.disable()
+    try:
+        levelnodes,leafnodes = f.build_fdd(pc)
+    except KeyboardInterrupt:
+        print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+    gc.enable()
+    mem = f.fdd_mem(f.root)
+    print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+
+    #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+    f.tcam_split(pc, levelnodes, leafnodes)
+
 
 def firewall_compressor_algo(pc, order):
 
@@ -109,9 +127,10 @@ if __name__ == "__main__":
     #print pc
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order = [0, 1, 2, 3, 4]
+    order = [4,1,2,3,0]
 
-    #redund_remove(pc, order)
+    #pc = redund_remove(pc, order)
+    #new_pc = firewall_compressor_algo(pc, order)
 
     ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
     wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
@@ -121,10 +140,14 @@ if __name__ == "__main__":
     xx = filter(lambda x: not x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
     ##rule.rule_parse(xx, "@0.0.0.0/0\t0.0.0.0/0\t0 : 65535\t0 : 65535\t0x00/0x00", 0)
 
-    wwc = firewall_compressor_algo(ww, order)
-    wxc = firewall_compressor_algo(wx, order)
-    xwc = firewall_compressor_algo(xw, order)
-    xxc = firewall_compressor_algo(xx, order)
+    #wwc = firewall_compressor_algo(ww, order)
+    #wxc = firewall_compressor_algo(wx, order)
+    #xwc = firewall_compressor_algo(xw, order)
+    #xxc = firewall_compressor_algo(xx, order)
+    tcam_split(ww, order)
+    tcam_split(wx, order)
+    tcam_split(xw, order)
+    tcam_split(xx, order)
 
-    print float(len(wwc)+len(wxc)+len(xwc)+len(xxc)) / len(pc)
+    #print float(len(wwc)+len(wxc)+len(xwc)+len(xxc)) / len(pc)
 

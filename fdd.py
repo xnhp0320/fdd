@@ -12,7 +12,7 @@ import gc
 import pdb
 from fwsched import Scheduler
 from fwsched import PrepSchedData
-
+from collections import deque
 
 
 RULE_INDEX = 2
@@ -682,6 +682,10 @@ class FDD:
         color = []
         #print preplist
         #print R
+        #if n.dim ==2 and n.color ==1:
+        #    print R
+        #    print preplist
+
         for ri in xrange(len(R)):
             i = R[ri].l
             while i<= R[ri].h:
@@ -697,6 +701,13 @@ class FDD:
                 color.append(RC[ri])
                 i = j
 
+        #if n.dim ==2 and n.color ==1:
+        #    print rangeset
+        #    print color
+
+
+        #print "rangeset", rangeset
+
         for ci in xrange(len(color)):
             ne = FDDEdge()
             for e in n.edgeset:
@@ -704,6 +715,10 @@ class FDD:
                     ne.node = e.node
                     ne.rangeset.append(rangeset[ci])
             n.compressed_edgeset.append(ne)
+
+        #if n.dim ==2 and n.color ==1:
+        #    print n.compressed_edgeset
+
 
         #pdb.set_trace()
 
@@ -795,7 +810,7 @@ class FDD:
             if j < inum:
                 chd = node.dimavail[di]
                 chdi = di
-                inum = len(i)
+                inum = j
                 chi = i
 
         del node.dimavail[chdi]
@@ -957,6 +972,55 @@ class FDD:
         #print raw_pc
         return pack_raw_pc(raw_pc)
 
+    def output_tcamsplit(self, reducednodes):
+        levellist = [[] for x in xrange(MAXDIM+1)]
+
+        for d in xrange(MAXDIM):
+            for n in reducednodes[d]:
+                for e in n.compressed_edgeset:
+                    for r in e.rangeset:
+                        levellist[n.dim].append((n.color,r,e.node.color))
+
+
+        sort_table_list = [ [] for x in xrange(MAXDIM)]
+
+        for d in self.order:
+            table_dict = {}
+            for entry in levellist[d]:
+                if entry[0] in table_dict:
+                    table_dict[entry[0]].append((entry[1], entry[2]))
+                else:
+                    table_dict[entry[0]] = []
+                    table_dict[entry[0]].append((entry[1], entry[2]))
+
+
+            for key in table_dict.keys():
+                for x in table_dict[key]:
+                    sort_table_list[d].append((key, x[0], x[1]))
+
+        i = 0
+        for d in self.order:
+            print ""
+            print "tcam", i, "dim", d
+            tcam_entries = 0
+            for entry in sort_table_list[d]:
+                tcam_entries += entry[1].prefix_entries()
+                #print entry
+            print len(sort_table_list[d])
+            print tcam_entries
+            i+=1
+
+
+        return sort_table_list
+
+
+    def tcam_split(self, pc, levelnodes, leafnodes):
+        print "*compress the ruleset TCAM SPLIT"
+        reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
+        self.compress(reducednodes)
+        return self.output_tcamsplit(reducednodes)
+
+
     def redund_remove_semantic(self, leafnodes, rr_output, removed_list, pc):
         ppcdict = {}
         conlist = [n.ppc for n in leafnodes]
@@ -1092,7 +1156,7 @@ if __name__ == "__main__":
     print "laod rulset: ", len(pc)
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order=[4,0,1,2,3]
+    order=[4,1,2,3,0]
     f = FDD(order)
 
     ##the last one is a wild rule
@@ -1106,7 +1170,8 @@ if __name__ == "__main__":
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
 
-    cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+    #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
+    f.tcam_split(pc, levelnodes, leafnodes)
     #f.fdd_reduce(pc, levelnodes, leafnodes)
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
@@ -1135,24 +1200,24 @@ if __name__ == "__main__":
 
     #print "FDD(mem):", f.fdd_mem(f.root), "bytes"
 
-    f3 = FDD(order)
-    levelnodes, leafnodes = f3.build_fdd(cpc)
-    #levelnodes, leafnodes = f3.build_fdd(pc)
-    rr_out = []
-    removed_list = []
-    f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
-    #f3.redund_remove(leafnodes, rr_out, removed_list)
+    #f3 = FDD(order)
+    #levelnodes, leafnodes = f3.build_fdd(cpc)
+    ##levelnodes, leafnodes = f3.build_fdd(pc)
+    #rr_out = []
+    #removed_list = []
+    #f3.redund_remove_semantic(leafnodes, rr_out, removed_list, cpc)
+    ##f3.redund_remove(leafnodes, rr_out, removed_list)
 
-    print len(removed_list)
-    print len(rr_out)
-    #print removed_list
-    print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
+    #print len(removed_list)
+    #print len(rr_out)
+    ##print removed_list
+    #print "compression :", len(rr_out)/float(len(pc)) * 100, "%"
 
-    final_list = [cpc[x] for x in rr_out]
+    #final_list = [cpc[x] for x in rr_out]
     #print "tcam raw", rule.tcam_entry_raw(cpc)
 
     ##print final_list
-    rule.pc_equality(pc, final_list, "fw1_2_0.5_-0.1_1K_trace")
+    #rule.pc_equality(pc, final_list, "fw1_2_0.5_-0.1_1K_trace")
 
     #for i in f.root.edgeset:
     #    print i.rangeset
