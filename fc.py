@@ -94,6 +94,23 @@ def tcam_split_entries(pc, tcam):
     print "tcam raw entries: ", tcam_raw
     print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
+def default_entries(tcam):
+    dentry = [rule.Range(0, 4294967295),
+            rule.Range(0, 4294967295),
+            rule.Range(0, 65535),
+            rule.Range(0, 65535),
+            rule.Range(0,255)]
+
+    dcount = 0
+    for d in xrange(MAXDIM):
+        for entry in tcam[d]:
+            if entry[1] == dentry[d]:
+                #print entry
+                dcount += 1
+
+    return dcount
+
+
 
 def firewall_compressor_algo(pc, order):
 
@@ -172,8 +189,8 @@ if __name__ == "__main__":
     #print pc
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    #order = [4,1,2,3,0]
-    order = [0,1,2,3,4]
+    order = [4,1,2,3,0]
+    #order = [0,1,2,3,4]
 
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
@@ -181,6 +198,7 @@ if __name__ == "__main__":
     #traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
     tcam_split_entries(pc, tcam)
+    print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))
 
 
     #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)

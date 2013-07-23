@@ -472,12 +472,29 @@ def tcam_entry_raw(pc):
     return total
 
 
+def split_to_range_files(pc,fname):
+
+    f = open(fname+"_itl", "w")
+
+    for rule in pc:
+        f.write(rule[0].r.__repr__()+"\t"+
+                rule[1].r.__repr__()+"\t"+
+                rule[2].r.__repr__()+"\t"+
+                rule[3].r.__repr__()+"\t"+
+                rule[4].r.__repr__()+"\n")
+
+    f.close()
+
 
 
 if __name__ == "__main__":
-    pc = load_ruleset(sys.argv[1])
-    print len(pc)
-    print tcam_entry_raw(pc)
+    #pc = load_ruleset(sys.argv[1])
+    #print len(pc)
+    #print tcam_entry_raw(pc)
+
+    #split_to_range_files(pc, sys.argv[1])
+    print Range(1300, 1349).prefix_entries()
+
     #traces = load_traces("acl1_2_0.5_-0.1_1K_trace")
     #for t in traces:
     #    matched, matchno = match(pc, t)

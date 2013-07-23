@@ -1001,17 +1001,17 @@ class FDD:
                 for x in table_dict[key]:
                     sort_table_list[d].append((key, x[0], x[1]))
 
-        #i = 0
-        #for d in self.order:
-        #    print ""
-        #    print "tcam", i, "dim", d
-        #    tcam_entries = 0
-        #    for entry in sort_table_list[d]:
-        #        tcam_entries += entry[1].prefix_entries()
-        #        print entry
-        #    print len(sort_table_list[d])
-        #    print tcam_entries
-        #    i+=1
+        i = 0
+        for d in self.order:
+            print ""
+            print "tcam", i, "dim", d
+            tcam_entries = 0
+            for entry in sort_table_list[d]:
+                tcam_entries += entry[1].prefix_entries()
+                #print entry
+            print len(sort_table_list[d])
+            print tcam_entries
+            i+=1
 
 
         return sort_table_list
