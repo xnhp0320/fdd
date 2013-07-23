@@ -882,7 +882,7 @@ class FDD:
 
 
     def build_fdd(self, pc):
-        print "*building begins"
+        print "*building FDD begins"
         self.root.ppc = xrange(len(pc))
         self.root.no = 0
         thislevel = [self.root]
@@ -938,14 +938,14 @@ class FDD:
 
             levelnodes.append(thislevel)
             #levelcnt += 1
-            print "finish", dim
-            print "nodecnt", self.nodecnt
-            print "edgecnt", self.edgecnt
-            print "rangecnt", self.rangecnt
+            #print "finish", dim
+            #print "nodecnt", self.nodecnt
+            #print "edgecnt", self.edgecnt
+            #print "rangecnt", self.rangecnt
             thislevel = nextlevel
             nextlevel = []
 
-        print "\n*building complete\n"
+        print "\n*building FDD complete\n"
         return levelnodes, thislevel
 
     def output_compressed_list(self, pc, n, prefix, raw_pc):
@@ -1001,17 +1001,17 @@ class FDD:
                 for x in table_dict[key]:
                     sort_table_list[d].append((key, x[0], x[1]))
 
-        i = 0
-        for d in self.order:
-            print ""
-            print "tcam", i, "dim", d
-            tcam_entries = 0
-            for entry in sort_table_list[d]:
-                tcam_entries += entry[1].prefix_entries()
-                print entry
-            print len(sort_table_list[d])
-            print tcam_entries
-            i+=1
+        #i = 0
+        #for d in self.order:
+        #    #print ""
+        #    #print "tcam", i, "dim", d
+        #    tcam_entries = 0
+        #    for entry in sort_table_list[d]:
+        #        tcam_entries += entry[1].prefix_entries()
+        #        #print entry
+        #    #print len(sort_table_list[d])
+        #    #print tcam_entries
+        #    i+=1
 
 
         return sort_table_list

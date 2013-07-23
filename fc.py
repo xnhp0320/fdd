@@ -6,6 +6,8 @@ from fdd import *
 import rule
 import copy
 import itertools
+from guppy import hpy
+import kset
 
 
 def redund_remove(pc, order):
@@ -49,28 +51,52 @@ def tcam_split(pc, order):
     #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
     return f.tcam_split(pc, levelnodes, leafnodes)
 
+def tcam_split_match_one(pc, order, sort_table_list, t):
+    next_id = 0
+    for x in xrange(MAXDIM):
+        d = order[x]
+        #print "d", d
+        tv = t[d]
+        #print "tv", tv
+        table_matched = False
+        for entry in sort_table_list[d]:
+            if entry[0] == next_id:
+                if entry[1].match(tv):
+                    #print entry[1], "check", tv
+                    next_id = entry[2]
+                    table_matched = True
+                    #print "next_id", next_id
+                    break
+        if table_matched == False:
+            next_id = -1
+            break
+
+    return table_matched, next_id
+
+
 def tcam_split_match(pc, order, sort_table_list, traces):
 
     for ti in xrange(len(traces)):
         t = traces[ti]
-        next_id = 0
-        for x in xrange(MAXDIM):
-            d = order[x]
-            #print "d", d
-            tv = t[d]
-            #print "tv", tv
-            table_matched = False
-            for entry in sort_table_list[d]:
-                if entry[0] == next_id:
-                    if entry[1].match(tv):
-                        #print entry[1], "check", tv
-                        next_id = entry[2]
-                        table_matched = True
-                        #print "next_id", next_id
-                        break
-            if table_matched == False:
-                next_id = -1
-                break
+        #next_id = 0
+        #for x in xrange(MAXDIM):
+        #    d = order[x]
+        #    #print "d", d
+        #    tv = t[d]
+        #    #print "tv", tv
+        #    table_matched = False
+        #    for entry in sort_table_list[d]:
+        #        if entry[0] == next_id:
+        #            if entry[1].match(tv):
+        #                #print entry[1], "check", tv
+        #                next_id = entry[2]
+        #                table_matched = True
+        #                #print "next_id", next_id
+        #                break
+        #    if table_matched == False:
+        #        next_id = -1
+        #        break
+        table_matched, next_id = tcam_split_match_one(pc, order, sort_table_list, t)
 
         d = rule.match(pc, t)
         if d[0] == table_matched and d[1] == next_id:
@@ -82,19 +108,44 @@ def tcam_split_match(pc, order, sort_table_list, traces):
             print table_matched, next_id
             sys.exit(0)
 
-def tcam_split_entries(pc, tcam):
+def multi_tcam_split_match(pc, order, tcam, traces):
+    for ti in xrange(len(traces)):
+        t = traces[ti]
+        min_id = len(pc)
+
+        for tables in tcam:
+            table_matched, nextid = tcam_split_match_one(pc, order, tables, t)
+            if nextid != -1 and nextid < min_id:
+                min_id = nextid
+
+        if min_id == len(pc):
+            min_id = -1
+
+        d = rule.match(pc, t)
+        if d[0] == (min_id!=-1) and d[1] == min_id:
+            pass
+        else:
+            print ti
+            print t
+            print "should be",  d[0], d[1]
+            print "but be", (min_id!=-1), min_id
+            sys.exit(0)
+
+
+
+
+
+def tcam_split_entries(pc, tcam, tcam_raw):
     tcam_entries = 0
 
     for d in xrange(MAXDIM):
         for entry in tcam[d]:
             tcam_entries += entry[1].prefix_entries()
 
-    tcam_raw = rule.tcam_entry_raw(pc)
     print "tcam split entries: ", tcam_entries
-    print "tcam raw entries: ", tcam_raw
     print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
-def default_entries(tcam):
+def default_entry(tcam):
     dentry = [rule.Range(0, 4294967295),
             rule.Range(0, 4294967295),
             rule.Range(0, 65535),
@@ -110,7 +161,46 @@ def default_entries(tcam):
 
     return dcount
 
+def multi_tcam_split(pc, d, order):
+    #range-rule dict
+    print "[*] Multi TCAMSplit begins"
+    rr_dict = {}
 
+    for rule in pc:
+        if rule[d].r in rr_dict:
+            rr_dict[rule[d].r].append(rule[len(rule)-1].d)
+        else:
+            rr_dict[rule[d].r] = [rule[len(rule)-1].d]
+
+    k_set = []
+    kset.split_kset(rr_dict.keys(), k_set)
+    print "[*]There are",len(k_set), "sets"
+
+    split_pc_id = [ [] for i in xrange(len(k_set))]
+
+    set_id = 0
+    for rset in k_set:
+        for r in rset:
+            split_pc_id[set_id].extend(rr_dict[r])
+        set_id += 1
+
+    split_pc_ref = [ [ pc[x] for x in pcids] for pcids in split_pc_id]
+    tcam = []
+
+    for spc in split_pc_ref:
+        tcam.append(tcam_split(spc, order))
+
+    tcam_entries = 0
+    default_entries = 0
+
+    for tables in tcam:
+        default_entries += default_entry(tables)
+        for t in tables:
+            tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+
+    print "Multi Split TCAM:", tcam_entries
+    print "Default Entries:", default_entries
+    return tcam
 
 def firewall_compressor_algo(pc, order):
 
@@ -187,19 +277,28 @@ if __name__ == "__main__":
     #pc = rule.pc_uniform(1000, 2000)
     print "laod rulset: ", len(pc)
     #print pc
-    #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order = [4,1,2,3,0]
-    #order = [0,1,2,3,4]
+    tcam_raw = rule.tcam_entry_raw(pc)
+    print "tcam raw", tcam_raw
+
+    #order = [4,1,2,3,0]
+    order = [1,4,2,3,0]
 
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
-    tcam = tcam_split(pc, order)
-    #traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
+    #tcam = tcam_split(pc, order)
+    traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
-    tcam_split_entries(pc, tcam)
-    print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))
+    #tcam_split_entries(pc, tcam, tcam_raw)
 
+    tcam = multi_tcam_split(pc, 1, order)
+    #multi_tcam_split_match(pc, order, tcam, traces)
+
+
+    #print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))
+
+    h = hpy()
+    print h.heap()
 
     #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
     #wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
