@@ -1008,7 +1008,7 @@ class FDD:
             tcam_entries = 0
             for entry in sort_table_list[d]:
                 tcam_entries += entry[1].prefix_entries()
-                #print entry
+                print entry
             print len(sort_table_list[d])
             print tcam_entries
             i+=1
