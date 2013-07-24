@@ -1154,12 +1154,20 @@ class FDD:
 
 
 if __name__ == "__main__":
-    pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
-    print "laod rulset: ", len(pc)
     #print "tcam raw", rule.tcam_entry_raw(pc)
 
-    order=[4,1,2,3,0]
+    #order=[4,1,2,3,0]
+    #print sys.argv
+    order =map(int, sys.argv[1:6])
+    print "input ", reduce(lambda x,y:x+y, map(str, order))
+
+    pc = rule.load_ruleset(sys.argv[6])
+    print "laod rulset: ", len(pc)
+
+    #order=[2,4,3,0,1]
+    #order=[2,4,0,1,3]
+    #order=[4,2,3,0,1]
     f = FDD(order)
 
     ##the last one is a wild rule
@@ -1171,10 +1179,22 @@ if __name__ == "__main__":
     gc.enable()
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+    print "FDD: ", f.nodecnt, f.edgecnt, f.rangecnt
 
 
     #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
-    f.tcam_split(pc, levelnodes, leafnodes)
+    tcam_entries = 0
+    tcam = f.tcam_split(pc, levelnodes, leafnodes)
+    for t in tcam:
+        tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+
+    tcam_raw = rule.tcam_entry_raw(pc)
+    print "tcam raw: ", tcam_raw
+    print "tcam split entries: ", tcam_entries
+    print "compression ratio: ", float(tcam_entries)/(4*tcam_raw)
+
+
+
     #f.fdd_reduce(pc, levelnodes, leafnodes)
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")

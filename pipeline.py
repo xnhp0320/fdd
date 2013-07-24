@@ -7,6 +7,35 @@ import sys
 import gc
 
 
+def level_stats(levelnodes):
+    ls = [ [] for x in xrange(fdd.MAXDIM)]
+    i = 0
+    for level in levelnodes:
+        dim = {}
+        for n in level:
+            if n.dim in dim:
+                dim[n.dim] += 1
+            else:
+                dim[n.dim] = 1
+
+        def show_infos(d):
+            if d in dim:
+                ls[i].append(dim[d])
+            else:
+                ls[i].append(0)
+
+        show_infos(0)
+        show_infos(1)
+        show_infos(2)
+        show_infos(3)
+        show_infos(4)
+        i+= 1
+
+    print ls
+
+
+
+
 
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
@@ -32,6 +61,8 @@ if __name__ == "__main__":
     gc.enable()
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+
+    level_stats(levelnodes)
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #for ti in range(len(traces)):

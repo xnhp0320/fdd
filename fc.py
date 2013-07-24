@@ -8,6 +8,7 @@ import copy
 import itertools
 from guppy import hpy
 import kset
+import subprocess
 
 
 def redund_remove(pc, order):
@@ -267,21 +268,65 @@ def find_optimal_permutations(fields):
     index = cr_list.index(crmin)
     print order_list[index], crmin
 
+def test_fdd():
+    order_list = permutations([0,1,2,3,4])
+    out = open("fdd_test_"+sys.argv[1], "w")
+
+    for order in order_list:
+        command = reduce(lambda x,y:x+y, map(lambda x: str(x) + " ", order))
+        #print command
+        #print "test ", order
+        #print command+" "+sys.argv[1]
+        subprocess.call("./fdd.py " + command + sys.argv[1], stdout=out, shell=True)
+
+def analyze_test_fdd():
+    new_record = False
+    mem_list = []
+    cr_list = []
+
+    for line in fileinput.input("fdd_test_"+sys.argv[1]):
+        if re.match(r"input", line):
+            new_record = True
+        elif re.match(r"FDD\(mem\):", line) and new_record:
+            m = re.match(r"FDD\(mem\): (\d+)", line)
+            mem = int(m.group(1))
+            mem_list.append(mem)
+            #print "mem", mem
+        elif re.match(r"compression ratio: (.*)", line) and new_record:
+            m = re.match(r"compression ratio: (.*)", line)
+            cr = float(m.group(1))
+            cr_list.append(cr)
+            #print cr
+            new_record = False
+
+    print "CR"
+    for cr in cr_list:
+        print cr
+
+    print "mem"
+    for mem in mem_list:
+        print mem
+
+
+
 
 
 if __name__ == "__main__":
 
     sys.setrecursionlimit(10000)
-    pc = rule.load_ruleset(sys.argv[1])
+
+    #test_fdd()
+    analyze_test_fdd()
+    #pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
     #pc = rule.pc_uniform(1000, 2000)
-    print "laod rulset: ", len(pc)
+    #print "laod rulset: ", len(pc)
     #print pc
 
-    tcam_raw = rule.tcam_entry_raw(pc)
-    print "tcam raw", tcam_raw
+    #tcam_raw = rule.tcam_entry_raw(pc)
+    #print "tcam raw", tcam_raw
 
-    order = [1,4,0,2,3]
+    #order = [1,4,0,2,3]
     #order = [0,1,4,2,3]
 
     #pc = redund_remove(pc, order)
@@ -291,7 +336,7 @@ if __name__ == "__main__":
     #tcam_split_match(pc, order, tcam, traces)
     #tcam_split_entries(pc, tcam, tcam_raw)
 
-    tcam = multi_tcam_split(pc, 1, order)
+    #tcam = multi_tcam_split(pc, 1, order)
     #multi_tcam_split_match(pc, order, tcam, traces)
 
 
