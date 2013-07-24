@@ -281,13 +281,13 @@ if __name__ == "__main__":
     tcam_raw = rule.tcam_entry_raw(pc)
     print "tcam raw", tcam_raw
 
-    #order = [4,1,2,3,0]
-    order = [1,4,2,3,0]
+    order = [1,4,0,2,3]
+    #order = [0,1,4,2,3]
 
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
     #tcam = tcam_split(pc, order)
-    traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
+    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
     #tcam_split_entries(pc, tcam, tcam_raw)
 
@@ -297,8 +297,6 @@ if __name__ == "__main__":
 
     #print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))
 
-    h = hpy()
-    print h.heap()
 
     #ww = filter(lambda x: x[0].r.is_large(0.05) and x[1].r.is_large(0.05), pc)
     #wx = filter(lambda x: x[0].r.is_large(0.05) and not x[1].r.is_large(0.05), pc)
@@ -312,10 +310,25 @@ if __name__ == "__main__":
     #wxc = firewall_compressor_algo(wx, order)
     #xwc = firewall_compressor_algo(xw, order)
     #xxc = firewall_compressor_algo(xx, order)
-    #tcam_split(ww, order)
-    #tcam_split(wx, order)
-    #tcam_split(xw, order)
-    #tcam_split(xx, order)
+    #tcam_entries = 0
+    #t1 = tcam_split(ww, order)
+    #t2 = tcam_split(wx, order)
+    #t3 = tcam_split(xw, order)
+    #t4 = tcam_split(xx, order)
 
+    #for t in t1:
+    #    tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+    #for t in t2:
+    #    tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+    #for t in t3:
+    #    tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+    #for t in t4:
+    #    tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+
+    #print tcam_entries
+
+
+    h = hpy()
+    print h.heap()
     #print float(len(wwc)+len(wxc)+len(xwc)+len(xxc)) / len(pc)
 
