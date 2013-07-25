@@ -10,6 +10,7 @@ from guppy import hpy
 import kset
 import signal
 import subprocess
+import time
 
 
 def redund_remove(pc, order):
@@ -325,7 +326,10 @@ if __name__ == "__main__":
 
     sys.setrecursionlimit(10000)
 
+    start = time.time()
     test_fdd()
+    stop = time.time() - start
+    print stop
     analyze_test_fdd()
     #pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
