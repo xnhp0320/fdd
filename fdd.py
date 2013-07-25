@@ -1175,8 +1175,15 @@ if __name__ == "__main__":
     try:
         levelnodes,leafnodes = f.build_fdd(pc)
     except KeyboardInterrupt:
+        print ""
+        mem = f.fdd_mem(f.root)
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+        print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+        print "FDD: ", f.nodecnt, f.edgecnt, f.rangecnt
+        print "killed"
+        sys.exit(-1)
     gc.enable()
+
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
     print "FDD: ", f.nodecnt, f.edgecnt, f.rangecnt

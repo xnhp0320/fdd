@@ -8,6 +8,7 @@ import copy
 import itertools
 from guppy import hpy
 import kset
+import signal
 import subprocess
 
 
@@ -268,9 +269,18 @@ def find_optimal_permutations(fields):
     index = cr_list.index(crmin)
     print order_list[index], crmin
 
+def alarm_handler(signum, frame):
+    proc = subprocess.Popen("./check_mem.sh", shell=True, stdout=subprocess.PIPE)
+    mem=float(proc.communicate()[0].strip())
+    if mem > 70.0:
+        subprocess.call("./kill_fdd.sh", shell=True)
+    signal.alarm(30)
+
 def test_fdd():
     order_list = permutations([0,1,2,3,4])
     out = open("fdd_test_"+sys.argv[1], "w")
+    signal.signal(signal.SIGALRM, alarm_handler)
+    signal.alarm(30)
 
     for order in order_list:
         command = reduce(lambda x,y:x+y, map(lambda x: str(x) + " ", order))
@@ -315,7 +325,7 @@ if __name__ == "__main__":
 
     sys.setrecursionlimit(10000)
 
-    #test_fdd()
+    test_fdd()
     analyze_test_fdd()
     #pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
