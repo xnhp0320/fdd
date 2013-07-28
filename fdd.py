@@ -10,6 +10,8 @@ import signal
 import copy
 import gc
 import pdb
+import razor
+from guppy import hpy
 from fwsched import Scheduler
 from fwsched import PrepSchedData
 from collections import deque
@@ -741,6 +743,40 @@ class FDD:
 
                 self.make_compressed_edgeset(n, sched.R, sched.RC, preplist)
 
+    def make_razor_compressed_edgeset(self, n, cl):
+        color = []
+        rangeset = []
+
+        for en in cl:
+            if isinstance(en[0], list):
+                for r in en[0]:
+                    rangeset.append(rule.Range(r[0], r[1]))
+                color.append(en[1])
+            else:
+                rangeset.append(rule.Range(en[0][0], en[0][1]))
+                color.append(en[1])
+
+        for ci in xrange(len(color)):
+        #to note that this color may contain the same entry
+            ne = FDDEdge()
+            for e in n.edgeset:
+            #this is reduced edgeset, so every edge points to a unique color
+                if e.node.color == color[ci]:
+                    ne.node = e.node
+                    ne.rangeset.append(rangeset[ci])
+            n.compressed_edgeset.append(ne)
+
+
+
+    def razor_compress(self, levelnodes):
+        for i in xrange(len(self.order)-1, -1, -1):
+            for n in levelnodes[i]:
+                if n.no == 4:
+                    print "here"
+                cl, n.cost = razor.compress_node(n)
+                #if len(cl)> 1:
+                #    print cl
+                self.make_razor_compressed_edgeset(n, cl)
 
     @staticmethod
     def build_bms_fast(i, rset, bms, nppc):
@@ -1021,6 +1057,7 @@ class FDD:
         print "*compress the ruleset TCAM SPLIT"
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
+        #self.razor_compress(reducednodes)
         return self.output_tcamsplit(pc, reducednodes)
 
 
@@ -1171,7 +1208,7 @@ if __name__ == "__main__":
     f = FDD(order)
 
     ##the last one is a wild rule
-    gc.disable()
+    #gc.disable()
     try:
         levelnodes,leafnodes = f.build_fdd(pc)
     except KeyboardInterrupt:
@@ -1182,7 +1219,7 @@ if __name__ == "__main__":
         print "FDD: ", f.nodecnt, f.edgecnt, f.rangecnt
         print "killed"
         sys.exit(-1)
-    gc.enable()
+    #gc.enable()
 
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
@@ -1199,6 +1236,9 @@ if __name__ == "__main__":
     print "tcam raw: ", tcam_raw
     print "tcam split entries: ", tcam_entries
     print "compression ratio: ", float(tcam_entries)/(4*tcam_raw)
+
+    h = hpy()
+    print h.heap()
 
 
 

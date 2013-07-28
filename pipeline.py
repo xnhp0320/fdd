@@ -53,12 +53,12 @@ if __name__ == "__main__":
 
     #print "required", tcam_raw * 144/(1024.), "Kbits"
     f = fdd.FDD(None)
-    gc.disable()
+    #gc.disable()
     try:
         levelnodes,leafnodes = f.build_pdd(pc)
     except KeyboardInterrupt:
         print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
-    gc.enable()
+    #gc.enable()
     mem = f.fdd_mem(f.root)
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 

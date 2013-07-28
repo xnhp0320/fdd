@@ -140,12 +140,15 @@ def multi_tcam_split_match(pc, order, tcam, traces):
 
 def tcam_split_entries(pc, tcam, tcam_raw):
     tcam_entries = 0
+    orig_entries = 0
 
     for d in xrange(MAXDIM):
         for entry in tcam[d]:
             tcam_entries += entry[1].prefix_entries()
+            orig_entries += 1
 
     print "tcam split entries: ", tcam_entries
+    print "original entries: ", orig_entries
     print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
 def default_entry(tcam):
@@ -318,37 +321,54 @@ def analyze_test_fdd():
     for mem in mem_list:
         print mem
 
+def check_sharing_edges(tcam):
+    for t in tcam:
+        edge_dict ={}
+        print "in table "
+        for entry in t:
+            if (entry[1], entry[2]) in edge_dict:
+                edge_dict[(entry[1], entry[2])] += 1
+            else:
+                edge_dict[(entry[1], entry[2])] = 1
+            #print entry
 
+        #for keys in edge_dict.keys():
+        #    if edge_dict[keys] > 1:
+        #        print keys, edge_dict[keys]
+        sort_list = sum(filter(lambda x:x>100, edge_dict.values()))
 
+        print sort_list
 
 
 if __name__ == "__main__":
 
     sys.setrecursionlimit(10000)
 
-    start = time.time()
-    test_fdd()
-    stop = time.time() - start
-    print stop
-    analyze_test_fdd()
-    #pc = rule.load_ruleset(sys.argv[1])
+    #start = time.time()
+    #test_fdd()
+    #stop = time.time() - start
+    #print stop
+    #analyze_test_fdd()
+    pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
     #pc = rule.pc_uniform(1000, 2000)
-    #print "laod rulset: ", len(pc)
+    print "laod rulset: ", len(pc)
     #print pc
 
-    #tcam_raw = rule.tcam_entry_raw(pc)
-    #print "tcam raw", tcam_raw
+    tcam_raw = rule.tcam_entry_raw(pc)
+    print "tcam raw", tcam_raw
 
-    #order = [1,4,0,2,3]
+    order = [4,1,2,3,0]
     #order = [0,1,4,2,3]
 
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
-    #tcam = tcam_split(pc, order)
+    #print len(new_pc)
+    tcam = tcam_split(pc, order)
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
-    #tcam_split_entries(pc, tcam, tcam_raw)
+    tcam_split_entries(pc, tcam, tcam_raw)
+    check_sharing_edges(tcam)
 
     #tcam = multi_tcam_split(pc, 1, order)
     #multi_tcam_split_match(pc, order, tcam, traces)
