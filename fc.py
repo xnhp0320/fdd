@@ -382,9 +382,11 @@ def check_sharing_edges(tcam):
 
         print len(dp_set)
         print len(per_ss_edge)
-        print per_ss_edge
+        print sum(map(len, per_ss_edge))
         print sum(map(len, dp_set))
         print max_id
+
+
 
 
         print "tcam entries", len(t)
