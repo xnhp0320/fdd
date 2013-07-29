@@ -326,6 +326,7 @@ def check_sharing_edges(tcam):
         edge_dict ={}
         state_dict = {}
         print "in table "
+        max_id = 0
         for entry in t:
             if (entry[1], entry[2]) in edge_dict:
                 edge_dict[(entry[1], entry[2])] += 1
@@ -333,6 +334,8 @@ def check_sharing_edges(tcam):
             else:
                 edge_dict[(entry[1], entry[2])] = 1
                 state_dict[(entry[1], entry[2])] = [entry[0]]
+            if entry[0] > max_id:
+                max_id = entry[0]
             #print entry
 
         #for keys in edge_dict.keys():
@@ -368,7 +371,7 @@ def check_sharing_edges(tcam):
                 else:
                     insect = dps & sset
                     if len(insect) != 0:
-                        dps = dps - sset
+                        dp_set[dpsi] = dps - sset
                         need_to_add.append(insect)
                         new_list = copy.copy(per_ss_edge[dpsi])
                         new_list.append(si)
@@ -378,6 +381,10 @@ def check_sharing_edges(tcam):
                 dp_set.append(i)
 
         print len(dp_set)
+        print len(per_ss_edge)
+        print per_ss_edge
+        print sum(map(len, dp_set))
+        print max_id
 
 
         print "tcam entries", len(t)
