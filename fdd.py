@@ -731,6 +731,7 @@ class FDD:
 
 
     def compress(self, levelnodes):
+        print "firewall compressor"
         for i in xrange(len(self.order)-1, -1, -1):
             for n in levelnodes[i]:
                 color, cost, group, preplist = self.prepare_sched(n)
@@ -769,6 +770,7 @@ class FDD:
 
 
     def razor_compress(self, levelnodes):
+        print "using TCAM Razor"
         for i in xrange(len(self.order)-1, -1, -1):
             for n in levelnodes[i]:
                 if n.no == 4:
@@ -998,7 +1000,7 @@ class FDD:
 
 
     def firewall_compressor(self, pc, levelnodes, leafnodes):
-        print "*compress the ruleset"
+        print "*compress the ruleset using Firewall Compressor"
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
         prefix = [ None for x in xrange(len(self.order)+1) ]
@@ -1058,6 +1060,7 @@ class FDD:
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
         #self.razor_compress(reducednodes)
+        gc.collect()
         return self.output_tcamsplit(pc, reducednodes)
 
 

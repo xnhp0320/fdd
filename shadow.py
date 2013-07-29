@@ -8,8 +8,11 @@ import signal
 import copy
 import gc
 import pdb
+import math
 
 from fdd import *
+from collections import deque
+from itertools import ifilter
 
 
 def sharing_edges(ni, nj):
@@ -27,14 +30,16 @@ def sharing_edges(ni, nj):
             if ie == je:
                 num += 1
 
-    if num/len(ni.compressed_edgeset) > 0.5 \
-        and num/len(nj.compressed_edgeset) > 0.5:
-        return num
-    else:
-        print num
-        print "ni", len(ni.compressed_edgeset)
-        print "nj", len(nj.compressed_edgeset)
-        return 0
+    #if num/len(ni.compressed_edgeset) >= 0.5:
+    #    return num
+    #elif num/len(nj.compressed_edgeset) >= 0.5:
+    #    return -num
+    #else:
+    #    #print num
+    #    #print "ni", len(ni.compressed_edgeset)
+    #    #print "nj", len(nj.compressed_edgeset)
+    #    return 0
+    return num
 
 length = [2**32, 2**32, 2**16, 2**16, 2**8]
 def share_edge_length(ie, je, length):
@@ -63,6 +68,38 @@ def sharing_length(ni, nj):
     return r
 
 
+def bfs(wm, r, n):
+    q = deque()
+    q.append(r)
+    ns = {r:1}
+
+    while len(q) != 0:
+        c = q.popleft()
+        for y in xrange(n):
+            if wm[c*n+y] != 0:
+                if y not in ns:
+                    ns[y] = 1
+                    q.append(y)
+    return ns.keys()
+
+def get_all_graphs(wm):
+    n = int(math.sqrt(len(wm)))
+    fset = [0]*n
+    gset = []
+    k = sum(fset)
+
+    while k != n:
+        r = fset.index(0)
+        bset = bfs(wm, r, n)
+        for i in bset:
+            fset[i] = 1
+        k = sum(fset)
+        gset.append(bset)
+
+    return gset
+
+
+
 
 def similarity(levelnodes):
 #wm weight matrix
@@ -72,12 +109,19 @@ def similarity(levelnodes):
     for i in xrange(len(levelnodes)):
         for j in xrange(i+1, len(levelnodes)):
             #print i,j
-            wm[i*len(levelnodes) + j] = sharing_edges(levelnodes[i], levelnodes[j])
+            weight = sharing_edges(levelnodes[i], levelnodes[j])
+            wm[i*len(levelnodes) + j] = weight
+            wm[j*len(levelnodes) + i] = weight
             #wm[i*len(levelnodes) + j] = sharing_length(levelnodes[i], levelnodes[j])
-            if wm[i*len(levelnodes) +j] > msharing:
-                msharing = wm[i*len(levelnodes) + j]
+            if abs(weight) > msharing:
+                msharing = abs(weight)
 
     print "this level", msharing
+    #print wm
+    gset = get_all_graphs(wm)
+    print len(gset)
+    print len(levelnodes)
+
     #print filter(lambda x:x>0, wm)
 
 def print_lvl(levelnodes):

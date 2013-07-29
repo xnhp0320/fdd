@@ -324,20 +324,65 @@ def analyze_test_fdd():
 def check_sharing_edges(tcam):
     for t in tcam:
         edge_dict ={}
+        state_dict = {}
         print "in table "
         for entry in t:
             if (entry[1], entry[2]) in edge_dict:
                 edge_dict[(entry[1], entry[2])] += 1
+                state_dict[(entry[1], entry[2])].append(entry[0])
             else:
                 edge_dict[(entry[1], entry[2])] = 1
+                state_dict[(entry[1], entry[2])] = [entry[0]]
             #print entry
 
         #for keys in edge_dict.keys():
         #    if edge_dict[keys] > 1:
         #        print keys, edge_dict[keys]
-        sort_list = sum(filter(lambda x:x>100, edge_dict.values()))
+        state_set = []
+        edge_set = []
+        for i in edge_dict.iteritems():
+            if i[1] > 100:
+                state_set.append(state_dict[i[0]])
+                edge_set.append(i[0])
 
-        print sort_list
+        if len(state_set) == 0:
+            continue
+
+        dp_set = [set(state_set[0])]
+        per_ss_edge = [[0]]
+
+        for si in xrange(1,len(state_set)):
+            ss = state_set[si]
+            need_to_add = []
+            union = reduce(lambda x,y: x|y, dp_set)
+            sset = set(ss)
+            new_dp = sset - union
+            if len(new_dp) != 0:
+                need_to_add.append(new_dp)
+                per_ss_edge.append([si])
+
+            for dpsi in xrange(len(dp_set)):
+                dps = dp_set[dpsi]
+                if dps <= sset:
+                    per_ss_edge[dpsi].append(si)
+                else:
+                    insect = dps & sset
+                    if len(insect) != 0:
+                        dps = dps - sset
+                        need_to_add.append(insect)
+                        new_list = copy.copy(per_ss_edge[dpsi])
+                        new_list.append(si)
+                        per_ss_edge.append(new_list)
+
+            for i in need_to_add:
+                dp_set.append(i)
+
+        print len(dp_set)
+
+
+        print "tcam entries", len(t)
+        #print sum(sort_list)
+        #print sort_list
 
 
 if __name__ == "__main__":

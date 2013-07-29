@@ -183,7 +183,7 @@ def Find_Solutions(Universe, Prefix, Color_Weights, Answers):
                           for cc in Colors ]
             goal = min(solutions)
 
-            answer[(Prefix,color)] =  [ f  for y in [ Merge_Lists(answer[(lowPrefix,Colors[i])], answer[(highPrefix,Colors[i])], p, color)
+            answer[(Prefix,color)] =  [ f for y in [ Merge_Lists(answer[(lowPrefix,Colors[i])], answer[(highPrefix,Colors[i])], p, color)
                                         for i in range(len(Colors)) if solutions[i] == goal ] for f in y ]
 
 
