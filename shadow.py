@@ -109,7 +109,8 @@ def similarity(levelnodes):
     for i in xrange(len(levelnodes)):
         for j in xrange(i+1, len(levelnodes)):
             #print i,j
-            weight = sharing_edges(levelnodes[i], levelnodes[j])
+            #weight = sharing_edges(levelnodes[i], levelnodes[j])
+            weight = sharing_length(levelnodes[i], levelnodes[j])
             wm[i*len(levelnodes) + j] = weight
             wm[j*len(levelnodes) + i] = weight
             #wm[i*len(levelnodes) + j] = sharing_length(levelnodes[i], levelnodes[j])

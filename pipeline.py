@@ -5,6 +5,7 @@ import fdd
 import rule
 import sys
 import gc
+import fc
 
 
 def level_stats(levelnodes):
@@ -40,7 +41,7 @@ def level_stats(levelnodes):
 if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
     print "original set length:", len(pc)
-    #tcam_raw = rule.tcam_entry_raw(pc)
+    tcam_raw = rule.tcam_entry_raw(pc)
     #print "prefix entries:", tcam_raw
     #ur = len(list(set([r[0].r for r in pc])))
     #print "uniq ranges",ur
@@ -63,6 +64,11 @@ if __name__ == "__main__":
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
     level_stats(levelnodes)
+    reducednodes = f.fdd_reduce(pc, levelnodes, leafnodes)
+    f.compress(reducednodes)
+    tcam =  f.output_pdd_list(pc, reducednodes)
+    fc.pdd_entries(pc, tcam, tcam_raw)
+    fc.compress_pdd_edges(tcam)
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #for ti in range(len(traces)):

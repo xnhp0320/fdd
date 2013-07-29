@@ -228,6 +228,8 @@ class FDDNode:
         if self.sig != other.sig:
             return False
         else:
+            if self.dim != other.dim:
+                return False
             if len(self.edgeset) != len(other.edgeset):
                 return False
             for i in xrange(len(self.edgeset)):
@@ -566,10 +568,10 @@ class FDD:
     def fdd_reduce(self, pc, levelnodes, leafnodes):
         self.process_leafnodes(pc, leafnodes)
 
-        reducednodes = [None for x in xrange(len(self.order))]
+        reducednodes = [None for x in xrange(MAXDIM)]
         #mark = None
         #nodemark = None
-        for i in xrange(len(self.order)-1, -1, -1):
+        for i in xrange(MAXDIM-1, -1, -1):
             #for n in levelnodes[2]:
             #    for e in n.edgeset:
             #        if e.no == 1302:
@@ -732,7 +734,7 @@ class FDD:
 
     def compress(self, levelnodes):
         print "firewall compressor"
-        for i in xrange(len(self.order)-1, -1, -1):
+        for i in xrange(MAXDIM-1, -1, -1):
             for n in levelnodes[i]:
                 color, cost, group, preplist = self.prepare_sched(n)
                 #print color, cost, group
@@ -1010,8 +1012,22 @@ class FDD:
         #print raw_pc
         return pack_raw_pc(raw_pc)
 
-    def output_tcamsplit(self, pc, reducednodes):
+    def output_pdd_list(self, pc, reducednodes):
         levellist = [[] for x in xrange(MAXDIM+1)]
+
+        for d in xrange(MAXDIM):
+            for n in reducednodes[d]:
+                for e in n.compressed_edgeset:
+                    for r in e.rangeset:
+                        if d != MAXDIM - 1:
+                            levellist[d].append((n.dim, n.color,r,e.node.color))
+                        else:
+                            levellist[d].append((n.dim, n.color,r,pc[e.node.ppc[0]][MAXDIM].d))
+        return levellist
+
+
+    def output_tcamsplit(self, pc, reducednodes):
+        levellist = [[] for x in xrange(MAXDIM)]
 
         for d in xrange(MAXDIM):
             for n in reducednodes[d]:
@@ -1022,22 +1038,25 @@ class FDD:
                         else:
                             levellist[n.dim].append((n.color,r,pc[e.node.ppc[0]][MAXDIM].d))
 
+        #print "0", len(levellist[0])
 
-        sort_table_list = [ [] for x in xrange(MAXDIM)]
+        #sort_table_list = [ [] for x in xrange(MAXDIM)]
 
-        for d in self.order:
-            table_dict = {}
-            for entry in levellist[d]:
-                if entry[0] in table_dict:
-                    table_dict[entry[0]].append((entry[1], entry[2]))
-                else:
-                    table_dict[entry[0]] = []
-                    table_dict[entry[0]].append((entry[1], entry[2]))
+        #for d in self.order:
+        #    table_dict = {}
+        #    for entry in levellist[d]:
+        #        if entry[0] in table_dict:
+        #            table_dict[entry[0]].append((entry[1], entry[2]))
+        #        else:
+        #            table_dict[entry[0]] = []
+        #            table_dict[entry[0]].append((entry[1], entry[2]))
 
 
-            for key in table_dict.keys():
-                for x in table_dict[key]:
-                    sort_table_list[d].append((key, x[0], x[1]))
+        #    for key in table_dict.keys():
+        #        for x in table_dict[key]:
+        #            sort_table_list[d].append((key, x[0], x[1]))
+
+        #print "0", len(sort_table_list[0])
 
         #i = 0
         #for d in self.order:
@@ -1052,7 +1071,7 @@ class FDD:
         #    i+=1
 
 
-        return sort_table_list
+        return levellist
 
 
     def tcam_split(self, pc, levelnodes, leafnodes):
@@ -1135,7 +1154,7 @@ class FDD:
                 # n is the leaf
                     #strkey = reduce(lambda x,y: str(x)+"."+str(y), n.ppc)
                     #strkey = n.ppc[0]
-                    strkey = pc[n.ppc[0]][len(self.order)].d
+                    strkey = pc[n.ppc[0]][MAXDIM].d
                     #print strkey
                     if strkey not in leafdict:
                         leafdict[strkey] = leafcolor
@@ -1167,6 +1186,7 @@ class FDD:
             return n.sig
 
         key = 0
+        key ^= n.dim
         for e in n.edgeset:
             key ^= hash(self.sig_node(e.node))
             for r in e.rangeset:

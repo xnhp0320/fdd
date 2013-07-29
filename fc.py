@@ -134,8 +134,18 @@ def multi_tcam_split_match(pc, order, tcam, traces):
             print "but be", (min_id!=-1), min_id
             sys.exit(0)
 
+def pdd_entries(pc, tcam, tcam_raw):
+    tcam_entries = 0
+    orig_entries = 0
 
+    for d in xrange(MAXDIM):
+        for entry in tcam[d]:
+            tcam_entries += entry[2].prefix_entries()
+            orig_entries += 1
 
+    print "tcam split entries: ", tcam_entries
+    print "original entries: ", orig_entries
+    print "compression: ", float(tcam_entries)/(4*tcam_raw)
 
 
 def tcam_split_entries(pc, tcam, tcam_raw):
@@ -321,21 +331,21 @@ def analyze_test_fdd():
     for mem in mem_list:
         print mem
 
-def check_sharing_edges(tcam):
+def compress_pdd_edges(tcam):
     for t in tcam:
         edge_dict ={}
         state_dict = {}
         print "in table "
         max_id = 0
         for entry in t:
-            if (entry[1], entry[2]) in edge_dict:
-                edge_dict[(entry[1], entry[2])] += 1
-                state_dict[(entry[1], entry[2])].append(entry[0])
+            if (entry[2], entry[3]) in edge_dict:
+                edge_dict[(entry[2], entry[3])] += 1
+                state_dict[(entry[2], entry[3])].append(entry[1])
             else:
-                edge_dict[(entry[1], entry[2])] = 1
-                state_dict[(entry[1], entry[2])] = [entry[0]]
-            if entry[0] > max_id:
-                max_id = entry[0]
+                edge_dict[(entry[2], entry[3])] = 1
+                state_dict[(entry[2], entry[3])] = [entry[1]]
+            if entry[1] > max_id:
+                max_id = entry[1]
             #print entry
 
         #for keys in edge_dict.keys():
@@ -343,12 +353,16 @@ def check_sharing_edges(tcam):
         #        print keys, edge_dict[keys]
         state_set = []
         edge_set = []
+        reduced_edges = 0
         for i in edge_dict.iteritems():
             if i[1] > 100:
                 state_set.append(state_dict[i[0]])
                 edge_set.append(i[0])
+                reduced_edges += i[1]
 
         if len(state_set) == 0:
+            print "how many states: ", max_id
+            print "original entries", len(t)
             continue
 
         dp_set = [set(state_set[0])]
@@ -380,16 +394,94 @@ def check_sharing_edges(tcam):
             for i in need_to_add:
                 dp_set.append(i)
 
-        print len(dp_set)
-        print len(per_ss_edge)
-        print sum(map(len, per_ss_edge))
-        print sum(map(len, dp_set))
-        print max_id
+        #print dp_set
+        print "set num:", len(dp_set)
+        #print per_ss_edge
+        print "per_ss_edge sum", sum(map(len, per_ss_edge))
+        print "how many states overlapped", sum(map(len, dp_set))
+        print "how many states: ", max_id
+        print "reduced edges: ", reduced_edges
 
 
 
+        print "original entries", len(t)
+        #print sum(sort_list)
+        #print sort_list
 
-        print "tcam entries", len(t)
+
+def compress_sharing_edges(tcam):
+    for t in tcam:
+        edge_dict ={}
+        state_dict = {}
+        print "in table "
+        max_id = 0
+        for entry in t:
+            if (entry[1], entry[2]) in edge_dict:
+                edge_dict[(entry[1], entry[2])] += 1
+                state_dict[(entry[1], entry[2])].append(entry[0])
+            else:
+                edge_dict[(entry[1], entry[2])] = 1
+                state_dict[(entry[1], entry[2])] = [entry[0]]
+            if entry[0] > max_id:
+                max_id = entry[0]
+            #print entry
+
+        #for keys in edge_dict.keys():
+        #    if edge_dict[keys] > 1:
+        #        print keys, edge_dict[keys]
+        state_set = []
+        edge_set = []
+        reduced_edges = 0
+        for i in edge_dict.iteritems():
+            if i[1] > 100:
+                state_set.append(state_dict[i[0]])
+                edge_set.append(i[0])
+                reduced_edges += i[1]
+
+        if len(state_set) == 0:
+            print "how many states: ", max_id
+            print "original entries", len(t)
+            continue
+
+        dp_set = [set(state_set[0])]
+        per_ss_edge = [[0]]
+
+        for si in xrange(1,len(state_set)):
+            ss = state_set[si]
+            need_to_add = []
+            union = reduce(lambda x,y: x|y, dp_set)
+            sset = set(ss)
+            new_dp = sset - union
+            if len(new_dp) != 0:
+                need_to_add.append(new_dp)
+                per_ss_edge.append([si])
+
+            for dpsi in xrange(len(dp_set)):
+                dps = dp_set[dpsi]
+                if dps <= sset:
+                    per_ss_edge[dpsi].append(si)
+                else:
+                    insect = dps & sset
+                    if len(insect) != 0:
+                        dp_set[dpsi] = dps - sset
+                        need_to_add.append(insect)
+                        new_list = copy.copy(per_ss_edge[dpsi])
+                        new_list.append(si)
+                        per_ss_edge.append(new_list)
+
+            for i in need_to_add:
+                dp_set.append(i)
+
+        #print dp_set
+        print "set num:", len(dp_set)
+        #print per_ss_edge
+        print "per_ss_edge sum", sum(map(len, per_ss_edge))
+        print "how many states overlapped", sum(map(len, dp_set))
+        print "how many states: ", max_id
+        print "reduced edges: ", reduced_edges
+
+
+        print "original entries", len(t)
         #print sum(sort_list)
         #print sort_list
 
@@ -422,7 +514,7 @@ if __name__ == "__main__":
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
     tcam_split_entries(pc, tcam, tcam_raw)
-    check_sharing_edges(tcam)
+    compress_sharing_edges(tcam)
 
     #tcam = multi_tcam_split(pc, 1, order)
     #multi_tcam_split_match(pc, order, tcam, traces)
