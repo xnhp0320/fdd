@@ -156,6 +156,8 @@ def tcam_split_entries(pc, tcam, tcam_raw):
         for entry in tcam[d]:
             tcam_entries += entry[1].prefix_entries()
             orig_entries += 1
+            if d == 1:
+                print entry
 
     print "tcam split entries: ", tcam_entries
     print "original entries: ", orig_entries
@@ -432,6 +434,8 @@ def compress_sharing_edges(tcam):
         state_set = []
         edge_set = []
         reduced_edges = 0
+        print "sharing edges", sum(filter(lambda x:x > 1, edge_dict.values()))
+        print "sharing edges unique", len(filter(lambda x:x>1, edge_dict.values()))
         for i in edge_dict.iteritems():
             if i[1] > 100:
                 state_set.append(state_dict[i[0]])
@@ -505,6 +509,7 @@ if __name__ == "__main__":
     print "tcam raw", tcam_raw
 
     order = [4,1,2,3,0]
+    #order = [4,2,3,0,1]
     #order = [0,1,4,2,3]
 
     #pc = redund_remove(pc, order)
@@ -514,7 +519,7 @@ if __name__ == "__main__":
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #tcam_split_match(pc, order, tcam, traces)
     tcam_split_entries(pc, tcam, tcam_raw)
-    compress_sharing_edges(tcam)
+    #compress_sharing_edges(tcam)
 
     #tcam = multi_tcam_split(pc, 1, order)
     #multi_tcam_split_match(pc, order, tcam, traces)

@@ -220,17 +220,21 @@ def compress_node(n):
 
 
 if __name__ == "__main__":
-    test = [ ((0x61,0x6f),0), ((0x0, 0xff), 1) ]
-    testWeights = {0 : 1, 1:1}
+    test = [ ((0,2422223607),68), ((2422223608,2422223608), 3),
+            ((2422223609 , 2422223613), 68), #((2422223614 , 2422223614), 69),
+            ((2422223615 , 2423496703), 68), ((2423496704 , 2423497727), 28),
+            ((2423497728 , 2587110727), 68), #((2587110728 , 2587110728), 69),
+            ((2587110729 , 4294967295), 68), ((0, 4294967295), 69)]
+    testWeights = {68 : 1, 28:1, 3:1, 69:65535}
 
 #Usage:
-    x = Weighted_Suris(test,(0,255),testWeights)
+    x = Weighted_Suris(test,(0,4294967295),testWeights)
     #for keys in x.keys():
     #    print "keys", keys
     #    print x[keys]
-    y = Find_Solutions(test,(0,255),testWeights,x)
+    y = Find_Solutions(test,(0,4294967295),testWeights,x)
     #for keys in y.keys():
     #print "keys", keys
     #print y[keys]
 
-    print y[((0x00, 0xff), 1)]
+    print y[((0x00, 4294967295), 69)]

@@ -737,6 +737,10 @@ class FDD:
         for i in xrange(MAXDIM-1, -1, -1):
             for n in levelnodes[i]:
                 color, cost, group, preplist = self.prepare_sched(n)
+                if n.no == 3:
+                    print color
+                    print cost
+                    print group
                 #print color, cost, group
                 #print len(color)
                 sched = Scheduler(color, cost, group)
@@ -745,6 +749,116 @@ class FDD:
                 #print sched.R
 
                 self.make_compressed_edgeset(n, sched.R, sched.RC, preplist)
+
+    @staticmethod
+    def make_prep(eset):
+        prepdict = {}
+
+        for e in eset:
+            for r in e.rangeset:
+                prep = PrepSchedData(r, e.node.color, 1)
+                if e.node.color not in prepdict:
+                    prepdict[e.node.color] = [prep]
+                else:
+                    prepdict[e.node.color].append(prep)
+
+        #print prepdict.values()
+        preplist = reduce(lambda x,y: x+y, prepdict.values())
+        #print preplist
+        preplist.sort()
+
+
+        seg = []
+        i= 0
+        while i < len(preplist):
+            j = i+1
+            while j < len(preplist):
+                if preplist[j-1].r.h == preplist[j].r.l -1:
+                    j += 1
+                else:
+                    break
+            seg.append((i,j))
+            i = j
+
+        color = []
+        cost  = {}
+        group = []
+
+        for key in prepdict.keys():
+            cost[key] = 1
+        i=0
+        for s in seg:
+            color.append([preplist[x].color for x in xrange(s[0], s[1])])
+
+            sgroup = {}
+            index = 0
+            for c in color[i]:
+                if c not in sgroup:
+                    sgroup[c] = [index]
+                else:
+                    sgroup[c].append(index)
+                index += 1
+
+            group.append(sgroup)
+            i+=1
+
+        #for key in prepdict.keys():
+        #    prepdict[key].sort()
+
+        return color, cost, group, preplist, seg
+
+    @staticmethod
+    def compress_edgeset(R, RC, preplist, eset, compressed_edgeset):
+        rangeset = []
+        color = []
+        #print preplist
+        #print R
+
+        for ri in xrange(len(R)):
+            i = R[ri].l
+            while i<= R[ri].h:
+                rt = copy.copy(preplist[i].r)
+                j = i+1
+                while j <= R[ri].h:
+                    if rt.h == preplist[j].r.l -1:
+                        rt.h = preplist[j].r.h
+                        j += 1
+                    else:
+                        break
+                rangeset.append(rt)
+                color.append(RC[ri])
+                i = j
+
+        #print "rangeset", rangeset
+
+        for ci in xrange(len(color)):
+            ne = FDDEdge()
+            for e in eset:
+                if color[ci] == e.node.color:
+                    ne.node = e.node
+                    ne.rangeset.append(rangeset[ci])
+            compressed_edgeset.append(ne)
+                #print "default", rangeset[ci]
+        #print "done"
+
+
+    @staticmethod
+    def compress_eset(eset, default_range, default_node):
+        color, cost, group, preplist, seg = FDD.make_prep(eset)
+        compressed_edgeset = []
+        for x in xrange(len(seg)):
+            sched = Scheduler(color[x], cost, group[x])
+            sched.FSA_cost(0, len(color[x])-1)
+            sched.FSA_result(0,0,len(color[x])-1)
+            FDD.compress_edgeset(sched.R, sched.RC, preplist[seg[x][0]:seg[x][1]], eset, compressed_edgeset)
+
+        if default_range != None:
+            ne = FDDEdge()
+            ne.node = default_node
+            ne.rangeset.append(default_range)
+            compressed_edgeset.append(ne)
+        return compressed_edgeset
+
 
     def make_razor_compressed_edgeset(self, n, cl):
         color = []

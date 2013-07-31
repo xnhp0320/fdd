@@ -32,13 +32,23 @@ class RangePoints:
         if self.x > other.x:
             return 1
         if self.x == other.x:
-#stating points are higher than ending points
+#stating points are lower than ending points
             if self.s > other.s:
                 return -1
             if self.s < other.s:
                 return 1
             if self.s == other.s:
-                return 0
+                #return 0
+                if self.s == -1:
+                    return 0
+                else:
+#end points compares, if end points are ``far'', it should be put to the right.
+                    if self.end.x > other.end.x:
+                        return 1
+                    if self.end.x < other.end.x:
+                        return -1
+                    else:
+                        raise Exception
 
     def __repr__(self):
         return (self.x, self.s).__repr__()
@@ -245,13 +255,15 @@ if __name__ == "__main__":
 
     pc = rule.load_ruleset(sys.argv[1])
 
-    #rl = [ x[0].r for x in pc]
-    rl2d = [(x[0].r, x[1].r) for x in pc]
+    rl = [ x[1].r for x in pc]
+    #rl2d = [(x[4].r, x[1].r) for x in pc]
     #rl2d = [(rule.Range(0, 4294967295), rule.Range(0,4294967295)), (rule.Range(930852624, 930852625), rule.Range(0,4294967295)), (rule.Range(0,2147483647), rule.Range(0, 4294967295)), (rule.Range(0,1073741823), rule.Range(0, 4294967295))]
 
-    rset = list(set(rl2d))
+    #rset = list(set(rl2d))
+    rset = list(set(rl))
 
-    split_kset_2d(rset, kset)
+    split_kset(rset, kset)
+    #split_kset_2d(rset, kset)
     #print kset
     print len(kset)
     print map(len, kset)
