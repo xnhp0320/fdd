@@ -104,10 +104,10 @@ def diff_edges(ni, nj):
     #ceset = []
     flag = True
 
-    if ni.no == 1852 and nj.no == 1866:
-        print "here"
-    if ni.no == 1866 and nj.no == 1852:
-        print "here"
+    #if ni.no == 1852 and nj.no == 1866:
+    #    print "here"
+    #if ni.no == 1866 and nj.no == 1852:
+    #    print "here"
 
     for ie in ni.edgeset:
         flag = True
@@ -191,8 +191,8 @@ def get_edges(levelnodes):
     for i in xrange(len(levelnodes)):
         for j in xrange(i+1, len(levelnodes)):
             #print i,j
-            if (levelnodes[i].no == 1852 and levelnodes[j].no == 1866) or (levelnodes[j].no == 1852 and levelnodes[i].no == 1866):
-                print "here"
+            #if (levelnodes[i].no == 1852 and levelnodes[j].no == 1866) or (levelnodes[j].no == 1852 and levelnodes[i].no == 1866):
+            #    print "here"
             weight = sharing_edges(levelnodes[i], levelnodes[j])
             if weight > 0:
                 edges.append((i,j,weight))
@@ -315,8 +315,24 @@ def sharing_match(root, trace, table, check):
     return (d!=-1), d
 
 
-
-
+def compressed_entries(check, table):
+    tcam_entries = 0
+    original = 0
+    for ti in xrange(len(table)):
+        for color in table[ti].keys():
+            eset = table[ti][color]
+            if check[ti][color] == 0:
+                for e in eset:
+                    for r in e.rangeset:
+                        tcam_entries += r.prefix_entries()
+                        original += 1
+            else:
+                for ei in xrange(len(eset) - 1):
+                    for r in eset[ei].rangeset:
+                        tcam_entries += r.prefix_entries()
+                        original += 1
+    print "original", original, "tcam", tcam_entries
+    return original, tcam_entries
 
 if __name__ == "__main__":
     #pc = rule.pc_syn(700,38,10, 2000)
@@ -399,29 +415,31 @@ if __name__ == "__main__":
     #        for e in t[en]:
     #            print e.rangeset, e.node.color
 
-    traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
-    for ti in range(len(traces)):
-        if ti == 345:
-            print "here"
-        d1 = sharing_match(f.root, traces[ti], \
-                multi_compressed_table, multi_check)
-        d2 = rule.match(pc, traces[ti])
+    compressed_entries(multi_check, multi_compressed_table)
 
-        #if d1 == d2[1]:
-        #    pass
-        #else:
-        #    print t, d1, d2
-        #if ti == 779:
-        #    v = True
-        #    f.fdd_match(traces[ti],v)
+    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    #for ti in range(len(traces)):
+    #    #if ti == 345:
+    #    #    print "here"
+    #    d1 = sharing_match(f.root, traces[ti], \
+    #            multi_compressed_table, multi_check)
+    #    d2 = rule.match(pc, traces[ti])
 
-        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
-        #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
-            pass
-        else:
-            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-            #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
-            #d1 = f.fdd_match(traces[ti], v)
+    #    #if d1 == d2[1]:
+    #    #    pass
+    #    #else:
+    #    #    print t, d1, d2
+    #    #if ti == 779:
+    #    #    v = True
+    #    #    f.fdd_match(traces[ti],v)
+
+    #    if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+    #        pass
+    #    else:
+    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+    #        #d1 = f.fdd_match(traces[ti], v)
 
 
 

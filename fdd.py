@@ -737,10 +737,10 @@ class FDD:
         for i in xrange(MAXDIM-1, -1, -1):
             for n in levelnodes[i]:
                 color, cost, group, preplist = self.prepare_sched(n)
-                if n.no == 3:
-                    print color
-                    print cost
-                    print group
+                #if n.no == 3:
+                #    print color
+                #    print cost
+                #    print group
                 #print color, cost, group
                 #print len(color)
                 sched = Scheduler(color, cost, group)

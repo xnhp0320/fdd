@@ -156,8 +156,8 @@ def tcam_split_entries(pc, tcam, tcam_raw):
         for entry in tcam[d]:
             tcam_entries += entry[1].prefix_entries()
             orig_entries += 1
-            if d == 1:
-                print entry
+            #if d == 1:
+            #    print entry
 
     print "tcam split entries: ", tcam_entries
     print "original entries: ", orig_entries
