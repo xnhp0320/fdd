@@ -104,6 +104,11 @@ def diff_edges(ni, nj):
     #ceset = []
     flag = True
 
+    if ni.no == 1852 and nj.no == 1866:
+        print "here"
+    if ni.no == 1866 and nj.no == 1852:
+        print "here"
+
     for ie in ni.edgeset:
         flag = True
         for je in nj.edgeset:
@@ -168,11 +173,11 @@ def share_edge_compress(tn, nset, levelnodes, table):
         if li != 0:
             for lns in ln[li]:
                 diff_eset = diff_edges(levelnodes[lns[0]], levelnodes[lns[1]])
-                table[lns[0]] = (diff_eset, dentry[levelnodes[lns[0]].dim])
+                table[lns[0]] = (diff_eset, dentry[levelnodes[lns[0]].dim], levelnodes[lns[1]])
 
-    table[root] = (levelnodes[root].edgeset, None)
+    table[root] = (levelnodes[root].edgeset, None, None)
 
-    return table, root
+    return table
 
 
 
@@ -186,6 +191,8 @@ def get_edges(levelnodes):
     for i in xrange(len(levelnodes)):
         for j in xrange(i+1, len(levelnodes)):
             #print i,j
+            if (levelnodes[i].no == 1852 and levelnodes[j].no == 1866) or (levelnodes[j].no == 1852 and levelnodes[i].no == 1866):
+                print "here"
             weight = sharing_edges(levelnodes[i], levelnodes[j])
             if weight > 0:
                 edges.append((i,j,weight))
@@ -372,11 +379,11 @@ if __name__ == "__main__":
             check[n.color] = 0
 
         for tn in tree_node:
-            table, root = share_edge_compress(tn, nset, reducednodes[x], table)
+            table = share_edge_compress(tn, nset, reducednodes[x], table)
             for n in tn:
                 #if x == 3:
                 #    print "here"
-                compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], reducednodes[x][root])
+                compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], table[n][2])
                 #print compressed_table[n]
                 if table[n][1] != None:
                     check[reducednodes[x][n].color] = 1
@@ -392,7 +399,7 @@ if __name__ == "__main__":
     #        for e in t[en]:
     #            print e.rangeset, e.node.color
 
-    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    traces = rule.load_traces("fw1_2_0.5_-0.1_1K_trace")
     for ti in range(len(traces)):
         if ti == 345:
             print "here"
