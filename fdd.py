@@ -859,19 +859,106 @@ class FDD:
             compressed_edgeset.append(ne)
         return compressed_edgeset
 
+    @staticmethod
+    def make_prep_1(eset):
+        prepdict = {}
+        for e in eset:
+            for r in e.rangeset:
+                prep = PrepSchedData(r, e.node.color, 1)
+                if e.node.color not in prepdict:
+                    prepdict[e.node.color] = [prep]
+                else:
+                    prepdict[e.node.color].append(prep)
+
+        #print prepdict.values()
+        preplist = reduce(lambda x,y: x+y, prepdict.values())
+        #print preplist
+        preplist.sort()
+        color = [x.color for x in preplist]
+
+        cost = {}
+        for key in prepdict.keys():
+            cost[key] = prepdict[key][0].cost
+
+        group = {}
+        index = 0
+        for c in color:
+            if c not in group:
+                group[c] = [index]
+            else:
+                group[c].append(index)
+            index += 1
+
+        for key in prepdict.keys():
+            prepdict[key].sort()
+
+        return color, cost, group, preplist
+
+    @staticmethod
+    def compress_edgeset_1(R, RC, preplist, eset, compressed_edgeset):
+        rangeset = []
+        color = []
+
+        for ri in xrange(len(R)):
+            i = R[ri].l
+            while i<= R[ri].h:
+                rt = copy.copy(preplist[i].r)
+                j = i+1
+                while j <= R[ri].h:
+                    if rt.h == preplist[j].r.l -1:
+                        rt.h = preplist[j].r.h
+                        j += 1
+                    else:
+                        break
+                rangeset.append(rt)
+                color.append(RC[ri])
+                i = j
+
+        #if n.dim ==2 and n.color ==1:
+        #    print rangeset
+        #    print color
+
+
+        #print "rangeset", rangeset
+
+        for ci in xrange(len(color)):
+            ne = FDDEdge()
+            for e in eset:
+                if color[ci] == e.node.color:
+                    ne.node = e.node
+                    ne.rangeset.append(rangeset[ci])
+            compressed_edgeset.append(ne)
+
+    @staticmethod
+    def compress_eset_1(eset, default_range, default_node):
+        color, cost, group, preplist = FDD.make_prep_1(eset)
+        compressed_edgeset = []
+        sched = Scheduler(color, cost, group)
+        sched.FSA_cost(0, len(color)-1)
+        sched.FSA_result(0,0,len(color)-1)
+        FDD.compress_edgeset_1(sched.R, sched.RC, preplist, eset, compressed_edgeset)
+
+        if default_range != None:
+            ne = FDDEdge()
+            ne.node = default_node
+            ne.rangeset.append(default_range)
+            compressed_edgeset.append(ne)
+        return compressed_edgeset
+
+
 
     def make_razor_compressed_edgeset(self, n, cl):
         color = []
         rangeset = []
 
         for en in cl:
-            if isinstance(en[0], list):
-                for r in en[0]:
-                    rangeset.append(rule.Range(r[0], r[1]))
-                color.append(en[1])
-            else:
-                rangeset.append(rule.Range(en[0][0], en[0][1]))
-                color.append(en[1])
+            #if isinstance(en[0], list):
+            #    for r in en[0]:
+            #        rangeset.append(rule.Range(r[0], r[1]))
+            #    color.append(en[1])
+            #else:
+            rangeset.append(rule.Range(en[0][0], en[0][1]))
+            color.append(en[1])
 
         for ci in xrange(len(color)):
         #to note that this color may contain the same entry
@@ -887,14 +974,53 @@ class FDD:
 
     def razor_compress(self, levelnodes):
         print "using TCAM Razor"
+        #try:
         for i in xrange(len(self.order)-1, -1, -1):
             for n in levelnodes[i]:
-                if n.no == 4:
-                    print "here"
+                #if n.no == 4:
+                #    print "here"
                 cl, n.cost = razor.compress_node(n)
+                #cl, cost = razor.compress_node(n)
+                #n.cost = 1
+
                 #if len(cl)> 1:
                 #    print cl
                 self.make_razor_compressed_edgeset(n, cl)
+        #except KeyboardInterrupt:
+        #    h = hpy()
+        #    print h.heap()
+
+    @staticmethod
+    def razor_compress_eset(eset, dim, default_range, default_node):
+        compressed_edgeset = []
+        if default_node != None:
+            max_color = 0
+            for color in [e.node.color for e in eset]:
+                if color > max_color:
+                    max_color = color
+            cl, cost = razor.compress_incomplete_eset(eset, dim, default_range, max_color + 1)
+            for en in cl:
+                ne = FDDEdge()
+                for e in eset:
+                    if en[1] == e.node.color:
+                        ne.node = e.node
+                        ne.rangeset.append(rule.Range(en[0][0], en[0][1]))
+                compressed_edgeset.append(ne)
+            de = FDDEdge()
+            de.node = default_node
+            de.rangeset.append(default_range)
+            compressed_edgeset.append(de)
+        else:
+            cl, cost = razor.compress_complete_eset(eset,dim)
+            for en in cl:
+                ne = FDDEdge()
+                for e in eset:
+                    if en[1] == e.node.color:
+                        ne.node = e.node
+                        ne.rangeset.append(rule.Range(en[0][0], en[0][1]))
+                compressed_edgeset.append(ne)
+        return compressed_edgeset
+
 
     @staticmethod
     def build_bms_fast(i, rset, bms, nppc):
@@ -1193,7 +1319,7 @@ class FDD:
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
         self.compress(reducednodes)
         #self.razor_compress(reducednodes)
-        gc.collect()
+        #gc.collect()
         return self.output_tcamsplit(pc, reducednodes)
 
 
@@ -1381,26 +1507,26 @@ if __name__ == "__main__":
 
     #f.fdd_reduce(pc, levelnodes, leafnodes)
 
-    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    #for ti in range(len(traces)):
-    #    d1 = f.fdd_match( traces[ti])
-    #    d2 = rule.match(pc, traces[ti])
+    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    for ti in range(len(traces)):
+        d1 = f.fdd_match( traces[ti])
+        d2 = rule.match(pc, traces[ti])
 
-    #    #if d1 == d2[1]:
-    #    #    pass
-    #    #else:
-    #    #    print t, d1, d2
-    #    #if ti == 779:
-    #    #    v = True
-    #    #    f.fdd_match(traces[ti],v)
+        #if d1 == d2[1]:
+        #    pass
+        #else:
+        #    print t, d1, d2
+        #if ti == 779:
+        #    v = True
+        #    f.fdd_match(traces[ti],v)
 
-    #    if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
-    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
-    #        pass
-    #    else:
-    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
-    #        #d1 = f.fdd_match(traces[ti], v)
+        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+        #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+            pass
+        else:
+            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+            #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+            #d1 = f.fdd_match(traces[ti], v)
 
 
     #print cpc

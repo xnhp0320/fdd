@@ -68,7 +68,7 @@ if __name__ == "__main__":
     f.compress(reducednodes)
     tcam =  f.output_pdd_list(pc, reducednodes)
     fc.pdd_entries(pc, tcam, tcam_raw)
-    fc.compress_pdd_edges(tcam)
+    #fc.compress_pdd_edges(tcam)
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #for ti in range(len(traces)):

@@ -516,8 +516,8 @@ if __name__ == "__main__":
     #new_pc = firewall_compressor_algo(pc, order)
     #print len(new_pc)
     tcam = tcam_split(pc, order)
-    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    #tcam_split_match(pc, order, tcam, traces)
+    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    tcam_split_match(pc, order, tcam, traces)
     tcam_split_entries(pc, tcam, tcam_raw)
     #compress_sharing_edges(tcam)
 

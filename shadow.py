@@ -391,7 +391,8 @@ if __name__ == "__main__":
 
         for no in left_nodes:
             n = reducednodes[x][no]
-            compressed_table[n.color] = FDD.compress_eset(n.edgeset, None, None)
+            #compressed_table[n.color] = FDD.compress_eset(n.edgeset, None, None)
+            compressed_table[n.color] = FDD.razor_compress_eset(n.edgeset, n.dim, None, None)
             check[n.color] = 0
 
         for tn in tree_node:
@@ -399,7 +400,9 @@ if __name__ == "__main__":
             for n in tn:
                 #if x == 3:
                 #    print "here"
-                compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], table[n][2])
+                #compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], table[n][2])
+                compressed_table[reducednodes[x][n].color] = FDD.razor_compress_eset(table[n][0],
+                        reducednodes[x][n].dim, table[n][1], table[n][2])
                 #print compressed_table[n]
                 if table[n][1] != None:
                     check[reducednodes[x][n].color] = 1
@@ -417,29 +420,29 @@ if __name__ == "__main__":
 
     compressed_entries(multi_check, multi_compressed_table)
 
-    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    #for ti in range(len(traces)):
-    #    #if ti == 345:
-    #    #    print "here"
-    #    d1 = sharing_match(f.root, traces[ti], \
-    #            multi_compressed_table, multi_check)
-    #    d2 = rule.match(pc, traces[ti])
+    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    for ti in range(len(traces)):
+        #if ti == 345:
+        #    print "here"
+        d1 = sharing_match(f.root, traces[ti], \
+                multi_compressed_table, multi_check)
+        d2 = rule.match(pc, traces[ti])
 
-    #    #if d1 == d2[1]:
-    #    #    pass
-    #    #else:
-    #    #    print t, d1, d2
-    #    #if ti == 779:
-    #    #    v = True
-    #    #    f.fdd_match(traces[ti],v)
+        #if d1 == d2[1]:
+        #    pass
+        #else:
+        #    print t, d1, d2
+        #if ti == 779:
+        #    v = True
+        #    f.fdd_match(traces[ti],v)
 
-    #    if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
-    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
-    #        pass
-    #    else:
-    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
-    #        #d1 = f.fdd_match(traces[ti], v)
+        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+        #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+            pass
+        else:
+            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+            #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+            #d1 = f.fdd_match(traces[ti], v)
 
 
 
