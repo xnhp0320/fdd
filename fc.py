@@ -179,9 +179,7 @@ def default_entry(tcam):
 
     return dcount
 
-def multi_tcam_split(pc, d, order):
-    #range-rule dict
-    print "[*] Multi TCAMSplit begins"
+def sep_set_1d(pc, d):
     rr_dict = {}
 
     for rule in pc:
@@ -203,6 +201,57 @@ def multi_tcam_split(pc, d, order):
         set_id += 1
 
     split_pc_ref = [ [ pc[x] for x in pcids] for pcids in split_pc_id]
+    return split_pc_ref
+
+def pdd_split(pc):
+    print "PDD split"
+    f = FDD([0,1,2,3,4])
+
+    try:
+        levelnodes,leafnodes = f.build_pdd(pc)
+    except KeyboardInterrupt:
+        print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+    #gc.enable()
+    mem = f.fdd_mem(f.root)
+    print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+
+    #level_stats(levelnodes)
+    reducednodes = f.fdd_reduce(pc, levelnodes, leafnodes)
+    #f.incomplete_compress(reducednodes)
+    f.razor_incomplete_compress(reducednodes)
+    tcam =  f.output_pdd_list(pc, reducednodes)
+    return tcam
+
+
+def multi_pdd_split(pc, d, tcam_raw):
+    split_pc_ref = sep_set_1d(pc, d)
+    tcam = []
+    original = 0
+
+    for spc in split_pc_ref:
+        tcam.append(pdd_split(spc))
+
+    tcam_entries = 0
+    original = 0
+    #print tcam
+
+    for tables in tcam:
+        for t in tables:
+            tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[2].prefix_entries(), t))
+            original += len(t)
+
+    print "Multi Split TCAM:", tcam_entries
+    print "original rules" , original
+    print "compression: ", float(tcam_entries)/(4*tcam_raw)
+    return tcam
+
+
+
+
+def multi_tcam_split(pc, d, order, tcam_raw):
+    #range-rule dict
+    print "[*] Multi TCAMSplit begins"
+    split_pc_ref = sep_set_1d(pc, d)
     tcam = []
 
     for spc in split_pc_ref:
@@ -210,15 +259,20 @@ def multi_tcam_split(pc, d, order):
 
     tcam_entries = 0
     default_entries = 0
+    original = 0
 
     for tables in tcam:
         default_entries += default_entry(tables)
         for t in tables:
             tcam_entries += reduce(lambda x,y: x+y, map(lambda x: x[1].prefix_entries(), t))
+            original += len(t)
 
     print "Multi Split TCAM:", tcam_entries
+    print "original rules:", original
     print "Default Entries:", default_entries
+    print "compression: ", float(tcam_entries)/(4*tcam_raw)
     return tcam
+
 
 def firewall_compressor_algo(pc, order):
 
@@ -515,14 +569,14 @@ if __name__ == "__main__":
     #pc = redund_remove(pc, order)
     #new_pc = firewall_compressor_algo(pc, order)
     #print len(new_pc)
-    tcam = tcam_split(pc, order)
+    #tcam = tcam_split(pc, order)
     traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    tcam_split_match(pc, order, tcam, traces)
-    tcam_split_entries(pc, tcam, tcam_raw)
+    #tcam_split_match(pc, order, tcam, traces)
+    #tcam_split_entries(pc, tcam, tcam_raw)
     #compress_sharing_edges(tcam)
 
-    #tcam = multi_tcam_split(pc, 1, order)
-    #multi_tcam_split_match(pc, order, tcam, traces)
+    tcam = multi_tcam_split(pc, 1, order, tcam_raw)
+    multi_tcam_split_match(pc, order, tcam, traces)
 
 
     #print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))

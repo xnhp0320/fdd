@@ -391,8 +391,8 @@ if __name__ == "__main__":
 
         for no in left_nodes:
             n = reducednodes[x][no]
-            #compressed_table[n.color] = FDD.compress_eset(n.edgeset, None, None)
-            compressed_table[n.color] = FDD.razor_compress_eset(n.edgeset, n.dim, None, None)
+            compressed_table[n.color] = FDD.compress_eset(n.edgeset, None, None)
+            #compressed_table[n.color] = FDD.razor_compress_eset(n.edgeset, n.dim, None, None)
             check[n.color] = 0
 
         for tn in tree_node:
@@ -400,9 +400,9 @@ if __name__ == "__main__":
             for n in tn:
                 #if x == 3:
                 #    print "here"
-                #compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], table[n][2])
-                compressed_table[reducednodes[x][n].color] = FDD.razor_compress_eset(table[n][0],
-                        reducednodes[x][n].dim, table[n][1], table[n][2])
+                compressed_table[reducednodes[x][n].color] = FDD.compress_eset(table[n][0], table[n][1], table[n][2])
+                #compressed_table[reducednodes[x][n].color] = FDD.razor_compress_eset(table[n][0],
+                #        reducednodes[x][n].dim, table[n][1], table[n][2])
                 #print compressed_table[n]
                 if table[n][1] != None:
                     check[reducednodes[x][n].color] = 1

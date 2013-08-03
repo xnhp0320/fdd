@@ -39,6 +39,9 @@ def level_stats(levelnodes):
 
 
 if __name__ == "__main__":
+
+    sys.setrecursionlimit(10000)
+
     pc = rule.load_ruleset(sys.argv[1])
     print "original set length:", len(pc)
     tcam_raw = rule.tcam_entry_raw(pc)
@@ -53,22 +56,23 @@ if __name__ == "__main__":
     #print "required", c * 32/(1024.), "Kbits"
 
     #print "required", tcam_raw * 144/(1024.), "Kbits"
-    f = fdd.FDD(None)
-    #gc.disable()
-    try:
-        levelnodes,leafnodes = f.build_pdd(pc)
-    except KeyboardInterrupt:
-        print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
-    #gc.enable()
-    mem = f.fdd_mem(f.root)
-    print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+    #f = fdd.FDD(None)
+    ##gc.disable()
+    #try:
+    #    levelnodes,leafnodes = f.build_pdd(pc)
+    #except KeyboardInterrupt:
+    #    print 'rangecnt',f.rangecnt, 'edgecnt', f.edgecnt, 'nodecnt',f.nodecnt
+    ##gc.enable()
+    #mem = f.fdd_mem(f.root)
+    #print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
 
-    level_stats(levelnodes)
-    reducednodes = f.fdd_reduce(pc, levelnodes, leafnodes)
-    f.compress(reducednodes)
-    tcam =  f.output_pdd_list(pc, reducednodes)
-    fc.pdd_entries(pc, tcam, tcam_raw)
+    #level_stats(levelnodes)
+    #reducednodes = f.fdd_reduce(pc, levelnodes, leafnodes)
+    #f.compress(reducednodes)
+    #tcam =  f.output_pdd_list(pc, reducednodes)
+    #fc.pdd_entries(pc, tcam, tcam_raw)
     #fc.compress_pdd_edges(tcam)
+
 
     #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
     #for ti in range(len(traces)):
@@ -101,6 +105,7 @@ if __name__ == "__main__":
     #gc.enable()
     #mem = f1.fdd_mem(f1.root)
     #print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
+    fc.multi_pdd_split(pc, 0, tcam_raw)
 
 
 

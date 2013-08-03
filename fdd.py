@@ -23,6 +23,13 @@ POINTER_SIZE = 4
 NODE_SIZE = 12
 MAXDIM = 5
 
+dentry = [rule.Range(0, 4294967295),
+            rule.Range(0, 4294967295),
+            rule.Range(0, 65535),
+            rule.Range(0, 65535),
+            rule.Range(0,255)]
+
+
 
 class PackRange:
     def __init__(self, r):
@@ -841,11 +848,20 @@ class FDD:
                 #print "default", rangeset[ci]
         #print "done"
 
+    def incomplete_compress(self, levelnodes):
+        print "incomplete firewall compressor"
+        for i in xrange(MAXDIM-1, -1, -1):
+            for n in levelnodes[i]:
+                FDD.compress_eset(n.edgeset, None, None, n.compressed_edgeset)
+
 
     @staticmethod
-    def compress_eset(eset, default_range, default_node):
+    def compress_eset(eset, default_range, default_node, compressed_edgeset = None):
         color, cost, group, preplist, seg = FDD.make_prep(eset)
-        compressed_edgeset = []
+
+        if compressed_edgeset == None:
+            compressed_edgeset = []
+
         for x in xrange(len(seg)):
             sched = Scheduler(color[x], cost, group[x])
             sched.FSA_cost(0, len(color[x])-1)
@@ -858,6 +874,7 @@ class FDD:
             ne.rangeset.append(default_range)
             compressed_edgeset.append(ne)
         return compressed_edgeset
+
 
     @staticmethod
     def make_prep_1(eset):
@@ -970,6 +987,48 @@ class FDD:
                     ne.rangeset.append(rangeset[ci])
             n.compressed_edgeset.append(ne)
 
+    def razor_incomplete_compress(self, levelnodes):
+        print "using incomplete TCAM Razor"
+        #try:
+        for i in xrange(len(self.order)-1, -1, -1):
+            for n in levelnodes[i]:
+
+                max_color = 0
+                for color in [e.node.color for e in n.edgeset]:
+                    if color > max_color:
+                        max_color = color
+
+                rangeset = [ r for r in e.rangeset for e in n.edgeset]
+                rangeset.sort()
+
+                clt = False
+                i = 0
+                while i < len(rangeset)-1:
+                    if rangeset[i+1].l == rangeset[i].h+1:
+                        i+= 1
+                    else:
+                        break
+                else:
+                    if rangeset[i].h == dentry[n.dim].h and rangeset[0].l == dentry[n.dim].l:
+                        clt = True
+                    else:
+                        clt = False
+
+
+                #if n.no == 4:
+                #    print "here"
+                if clt is False:
+                    cl, cost = razor.compress_incomplete_eset(n.edgeset, n.dim, dentry[n.dim], max_color+1)
+                #cl, cost = razor.compress_node(n)
+                else:
+                    cl, cost = razor.compress_complete_eset(n.edgeset, n.dim)
+
+                self.make_razor_compressed_edgeset(n, cl)
+
+                n.cost = 1
+
+                #if len(cl)> 1:
+                #    print cl
 
 
     def razor_compress(self, levelnodes):
@@ -1253,7 +1312,7 @@ class FDD:
         return pack_raw_pc(raw_pc)
 
     def output_pdd_list(self, pc, reducednodes):
-        levellist = [[] for x in xrange(MAXDIM+1)]
+        levellist = [[] for x in xrange(MAXDIM)]
 
         for d in xrange(MAXDIM):
             for n in reducednodes[d]:
@@ -1317,8 +1376,10 @@ class FDD:
     def tcam_split(self, pc, levelnodes, leafnodes):
         print "*compress the ruleset TCAM SPLIT"
         reducednodes = self.fdd_reduce(pc, levelnodes, leafnodes)
-        self.compress(reducednodes)
+        #self.compress(reducednodes)
         #self.razor_compress(reducednodes)
+        self.incomplete_compress(reducednodes)
+        #self.razor_incomplete_compress(reducednodes)
         #gc.collect()
         return self.output_tcamsplit(pc, reducednodes)
 
