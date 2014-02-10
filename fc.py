@@ -54,6 +54,27 @@ def tcam_split(pc, order):
     #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
     return f.tcam_split(pc, levelnodes, leafnodes)
 
+def pdd_match_one(pc, tables, t):
+    next_id = 0
+    for table in tables:
+        table_matched = False
+        for entry in table:
+            if entry[1] == next_id:
+                tv = t[entry[0]]
+                if entry[2].match(tv):
+                    next_id = entry[3]
+                    table_matched = True
+                    break
+        if table_matched == False:
+            next_id = -1
+            break
+    return table_matched, next_id
+
+
+
+
+
+
 def tcam_split_match_one(pc, order, sort_table_list, t):
     next_id = 0
     for x in xrange(MAXDIM):
@@ -109,6 +130,29 @@ def tcam_split_match(pc, order, sort_table_list, traces):
             print t
             print d[0], d[1]
             print table_matched, next_id
+            sys.exit(0)
+
+def multi_pdd_match(pc, tcam, traces):
+    for ti in xrange(len(traces)):
+        t = traces[ti]
+        min_id = len(pc)
+
+        for tables in tcam:
+            table_matched, nextid = pdd_match_one(pc, tables, t)
+            if nextid != -1 and nextid < min_id:
+                min_id = nextid
+
+        if min_id == len(pc):
+            min_id = -1
+
+        d = rule.match(pc, t)
+        if d[0] == (min_id!=-1) and d[1] == min_id:
+            pass
+        else:
+            print ti
+            print t
+            print "should be",  d[0], d[1]
+            print "but be", (min_id!=-1), min_id
             sys.exit(0)
 
 def multi_tcam_split_match(pc, order, tcam, traces):
@@ -189,8 +233,14 @@ def sep_set_1d(pc, d):
             rr_dict[rule[d].r] = [rule[len(rule)-1].d]
 
     k_set = []
-    kset.split_kset(rr_dict.keys(), k_set)
+    kset.split_kset_optimal(rr_dict.keys(), k_set)
+    #aset.split_asel(rr_dict.keys(), k_set)
     print "[*]There are",len(k_set), "sets"
+
+    #if len(k_set) > limit:
+    #    set_no = limit
+    #else:
+    #    set_no = len(k_set)
 
     split_pc_id = [ [] for i in xrange(len(k_set))]
 
@@ -200,7 +250,12 @@ def sep_set_1d(pc, d):
             split_pc_id[set_id].extend(rr_dict[r])
         set_id += 1
 
+    #for rset in k_set[set_no-1:]:
+    #    for r in rset:
+    #        split_pc_id[set_id].extend(rr_dict[r])
+
     split_pc_ref = [ [ pc[x] for x in pcids] for pcids in split_pc_id]
+    print map(len, split_pc_ref)
     return split_pc_ref
 
 def pdd_split(pc):
@@ -217,18 +272,46 @@ def pdd_split(pc):
 
     #level_stats(levelnodes)
     reducednodes = f.fdd_reduce(pc, levelnodes, leafnodes)
-    #f.incomplete_compress(reducednodes)
-    f.razor_incomplete_compress(reducednodes)
+    f.incomplete_compress(reducednodes)
+    #f.razor_incomplete_compress(reducednodes)
     tcam =  f.output_pdd_list(pc, reducednodes)
     return tcam
 
 
-def multi_pdd_split(pc, d, tcam_raw):
+def merge_set(split_pc_ref, limit):
+    while len(split_pc_ref) > limit:
+        #print map(len, split_pc_ref)
+        split_pc_ref.sort(key=lambda x:len(x))
+        merge = copy.copy(split_pc_ref[0])
+        merge.extend(split_pc_ref[1])
+        #print len(merge)
+        #print map(len, split_pc_ref)
+        del split_pc_ref[0]
+        del split_pc_ref[0]
+        merge.sort(key=lambda x:x[len(x)-1].d)
+        #print map(len, split_pc_ref)
+        split_pc_ref.insert(0, merge)
+        del merge
+
+    print map(len, split_pc_ref)
+    print sum(map(len, split_pc_ref))
+    return split_pc_ref
+
+
+
+
+def multi_pdd_split(pc, d, tcam_raw, limit):
+    print "separated using", d, "dimension"
     split_pc_ref = sep_set_1d(pc, d)
     tcam = []
     original = 0
 
-    for spc in split_pc_ref:
+    if len(split_pc_ref) > limit:
+        merged_pc_ref = merge_set(split_pc_ref, limit)
+    else:
+        merged_pc_ref = split_pc_ref
+
+    for spc in merged_pc_ref:
         tcam.append(pdd_split(spc))
 
     tcam_entries = 0
@@ -362,6 +445,7 @@ def test_fdd():
 def analyze_test_fdd():
     new_record = False
     mem_list = []
+    rmem_list = []
     cr_list = []
 
     for line in fileinput.input("fdd_test_"+sys.argv[1]):
@@ -372,6 +456,10 @@ def analyze_test_fdd():
             mem = int(m.group(1))
             mem_list.append(mem)
             #print "mem", mem
+        elif re.match(r"FDD\(reduced mem\): (\d+)", line) and new_record:
+            m = re.match(r"FDD\(reduced mem\): (\d+)", line)
+            rmem = int(m.group(1))
+            rmem_list.append(rmem)
         elif re.match(r"compression ratio: (.*)", line) and new_record:
             m = re.match(r"compression ratio: (.*)", line)
             cr = float(m.group(1))
@@ -383,9 +471,9 @@ def analyze_test_fdd():
     for cr in cr_list:
         print cr
 
-    print "mem"
-    for mem in mem_list:
-        print mem
+    print "rmem"
+    for rmem in rmem_list:
+        print rmem
 
 def compress_pdd_edges(tcam):
     for t in tcam:
@@ -556,7 +644,7 @@ if __name__ == "__main__":
     pc = rule.load_ruleset(sys.argv[1])
     #pc = rule.pc_syn(700,38,10, 2000)
     #pc = rule.pc_uniform(1000, 2000)
-    print "laod rulset: ", len(pc)
+    print "load ruleset: ", len(pc)
     #print pc
 
     tcam_raw = rule.tcam_entry_raw(pc)
@@ -570,13 +658,14 @@ if __name__ == "__main__":
     #new_pc = firewall_compressor_algo(pc, order)
     #print len(new_pc)
     #tcam = tcam_split(pc, order)
-    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    traces = rule.load_traces("./noloc/"+ os.path.basename(sys.argv[1])+"_trace")
     #tcam_split_match(pc, order, tcam, traces)
     #tcam_split_entries(pc, tcam, tcam_raw)
     #compress_sharing_edges(tcam)
 
-    tcam = multi_tcam_split(pc, 1, order, tcam_raw)
-    multi_tcam_split_match(pc, order, tcam, traces)
+    #tcam = multi_tcam_split(pc, 1, order, tcam_raw)
+    tcam = multi_pdd_split(pc, 0, tcam_raw, 3)
+    multi_pdd_match(pc,  tcam, traces)
 
 
     #print default_entries(tcam), reduce(lambda x,y: x+y, map(lambda x: len(x), tcam))

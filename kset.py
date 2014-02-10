@@ -185,6 +185,25 @@ def split_kset_2d(rl2d, kset):
     kset.append(curr_set)
     split_kset_2d(left_set, kset)
 
+def split_kset_optimal(rl, kset):
+    if len(rl) == 0:
+        return
+
+    rl_sort = sorted(rl, key=lambda r:r.h)
+    prune_set = []
+
+    end = rl_sort[0].h
+    tmp = []
+    tmp.append(rl_sort[0])
+    for r in rl_sort[1:]:
+        if r.l <= end:
+            prune_set.append(r)
+        else:
+            tmp.append(r)
+            end = r.h
+    kset.append(tmp)
+
+    split_kset_optimal(prune_set, kset)
 
 
 
@@ -255,7 +274,7 @@ if __name__ == "__main__":
 
     pc = rule.load_ruleset(sys.argv[1])
 
-    rl = [ x[1].r for x in pc]
+    rl = [ x[0].r for x in pc]
     #rl2d = [(x[4].r, x[1].r) for x in pc]
     #rl2d = [(rule.Range(0, 4294967295), rule.Range(0,4294967295)), (rule.Range(930852624, 930852625), rule.Range(0,4294967295)), (rule.Range(0,2147483647), rule.Range(0, 4294967295)), (rule.Range(0,1073741823), rule.Range(0, 4294967295))]
 
@@ -267,9 +286,9 @@ if __name__ == "__main__":
     #print kset
     print len(kset)
     print map(len, kset)
-    for x in kset:
-        print ""
-        print x
+    #for x in kset:
+    #    print ""
+    #    print x
 
 
 

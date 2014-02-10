@@ -125,6 +125,10 @@ class Range:
         #print prefix_list, len(prefix_list)
         return c
 
+    def get_prefix_entries(self):
+        prefix_list = []
+        Range.prefix_entries_r(self.l, self.h, self.bits, prefix_list)
+        return prefix_list
 
 
 class Port:

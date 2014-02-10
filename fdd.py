@@ -400,7 +400,7 @@ class FDD:
     def build_interval_fast(rset):
         pl = build_line_points(rset)
         iv = []
-        events = {}
+        #events = {}
 
         stack = pl[0].s
         prev = pl[0].x
@@ -1172,6 +1172,7 @@ class FDD:
         for t in xrange(MAXDIM):
             for node in thislevel:
                 node.dim, i = FDD.choose_dim(node, pc)
+                #print i
                 #print node.dim
                 rs = [(pc[x])[node.dim].r for x in node.ppc]
                 intl_list, rset_ppcdict = FDD.build_bms_fast(i, rs, bms, node.ppc)
@@ -1278,9 +1279,9 @@ class FDD:
             levelnodes.append(thislevel)
             #levelcnt += 1
             #print "finish", dim
-            #print "nodecnt", self.nodecnt
-            #print "edgecnt", self.edgecnt
-            #print "rangecnt", self.rangecnt
+            print "nodecnt", self.nodecnt
+            print "edgecnt", self.edgecnt
+            print "rangecnt", self.rangecnt
             thislevel = nextlevel
             nextlevel = []
 
@@ -1372,6 +1373,54 @@ class FDD:
 
         return levellist
 
+    @staticmethod
+    def prefix_minimization_eval(n, ratio_list):
+        oprefix_num = 0
+        prefix_num = 0
+
+        if n.dim == -1:
+            #leaf nodes
+            return
+
+        for edge in n.edgeset:
+            for r in edge.rangeset:
+                oprefix_num += r.prefix_entries()
+        for edge in n.compressed_edgeset:
+            for r in edge.rangeset:
+                prefix_num += r.prefix_entries()
+
+        ratio_list.append(float(prefix_num)/oprefix_num)
+
+        for e in n.compressed_edgeset:
+            FDD.prefix_minimization_eval(e.node, ratio_list)
+
+    @staticmethod
+    def fdd_ranges(n):
+        range_num = 0
+
+        if n.dim == -1:
+            #leaf nodes
+            return 0
+
+        for edge in n.edgeset:
+            #range_num += len(edge.rangeset)
+            for r in edge.rangeset:
+                range_num += r.prefix_entries()
+
+        for e in n.edgeset:
+            range_num += FDD.fdd_ranges(e.node)
+
+        return range_num
+
+    @staticmethod
+    def fdd_reduced_ranges(reducednodes):
+        range_num = 0
+        for i in xrange(MAXDIM-1, -1, -1):
+            for n in reducednodes[i]:
+                for edge in n.compressed_edgeset:
+                    for r in edge.rangeset:
+                        range_num += r.prefix_entries()
+        return range_num
 
     def tcam_split(self, pc, levelnodes, leafnodes):
         print "*compress the ruleset TCAM SPLIT"
@@ -1381,6 +1430,8 @@ class FDD:
         self.incomplete_compress(reducednodes)
         #self.razor_incomplete_compress(reducednodes)
         #gc.collect()
+        range_num = FDD.fdd_reduced_ranges(reducednodes)
+        print range_num
         return self.output_tcamsplit(pc, reducednodes)
 
 
@@ -1502,6 +1553,7 @@ class FDD:
     def fdd_mem(self, n):
         mem = 0
         mem += len(n.edgeset) * POINTER_SIZE + NODE_SIZE
+        mem += len(n.in_edgeset) * POINTER_SIZE
 
         if n.dim == -1:
             mem += len(n.ppc) * RULE_INDEX
@@ -1549,6 +1601,10 @@ if __name__ == "__main__":
     print "FDD(mem):", mem, "bytes", mem/1024., "KB", mem/(1024.*1024), "MB"
     print "FDD: ", f.nodecnt, f.edgecnt, f.rangecnt
 
+    range_num = FDD.fdd_ranges(f.root)
+    print range_num
+
+
 
     #cpc = f.firewall_compressor(pc, levelnodes, leafnodes)
     tcam_entries = 0
@@ -1561,33 +1617,42 @@ if __name__ == "__main__":
     print "tcam split entries: ", tcam_entries
     print "compression ratio: ", float(tcam_entries)/(4*tcam_raw)
 
-    h = hpy()
-    print h.heap()
+    #h = hpy()
+    #print h.heap()
 
+    #ratio_list=[]
+    #FDD.prefix_minimization_eval(f.root, ratio_list)
 
+    #fout = open("fw1", "w")
+    #for ratio in ratio_list:
+    #    fout.write(str(ratio)+ "\n")
+    #fout.close()
+
+    #range_num = FDD.fdd_ranges(f.root)
+    #print range_num
 
     #f.fdd_reduce(pc, levelnodes, leafnodes)
 
-    traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
-    for ti in range(len(traces)):
-        d1 = f.fdd_match( traces[ti])
-        d2 = rule.match(pc, traces[ti])
+    #traces = rule.load_traces("acl1_2_0.5_-0.1_1K_trace")
+    #for ti in range(len(traces)):
+    #    d1 = f.fdd_match( traces[ti])
+    #    d2 = rule.match(pc, traces[ti])
 
-        #if d1 == d2[1]:
-        #    pass
-        #else:
-        #    print t, d1, d2
-        #if ti == 779:
-        #    v = True
-        #    f.fdd_match(traces[ti],v)
+    #    #if d1 == d2[1]:
+    #    #    pass
+    #    #else:
+    #    #    print t, d1, d2
+    #    #if ti == 779:
+    #    #    v = True
+    #    #    f.fdd_match(traces[ti],v)
 
-        if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
-        #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
-            pass
-        else:
-            print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
-            #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
-            #d1 = f.fdd_match(traces[ti], v)
+    #    if d1[0] == d2[0] and pc[d1[1]][len(f.order)].d == pc[d2[1]][len(f.order)].d:
+    #    #if d1[0] == d2[0] and d1[1] == pc[d2[1]][len(f.order)].d:
+    #        pass
+    #    else:
+    #        print traces[ti], ti, d2[1], pc[d1[1]][len(f.order)].d, pc[d2[1]][len(f.order)].d
+    #        #print traces[ti], ti, d2[1], d1[1], pc[d2[1]][len(f.order)].d
+    #        #d1 = f.fdd_match(traces[ti], v)
 
 
     #print cpc
