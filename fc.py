@@ -11,6 +11,7 @@ import kset
 import signal
 import subprocess
 import time
+import math
 
 
 def redund_remove(pc, order):
@@ -69,7 +70,6 @@ def pdd_match_one(pc, tables, t):
             next_id = -1
             break
     return table_matched, next_id
-
 
 
 
@@ -297,6 +297,35 @@ def merge_set(split_pc_ref, limit):
     print sum(map(len, split_pc_ref))
     return split_pc_ref
 
+TCAM_WIDTH=32
+
+def pdd_tcam_size(tcam):
+    sram_size = 0
+    tcam_size = 0
+    for tables in tcam:
+        for t in tables:
+            largest = reduce(max, map(lambda x: x[1],t))
+            if largest ==0:
+                table_id_bits = 0
+            else:
+                table_id_bits = math.ceil(math.log(largest+1,2))
+            #print table_id_bits
+            tcam_entries = reduce(lambda x,y: x+y, map(lambda x: x[2].prefix_entries(), t))
+            print tcam_entries
+            tcam_size += (TCAM_WIDTH + table_id_bits) * tcam_entries
+
+            next_table = reduce(max,map(lambda x:x[3],t))
+            if next_table == 0:
+                sram_id_bits = 0
+            else:
+                sram_id_bits = math.ceil(math.log(next_table+1,2))
+            sram_size += tcam_entries * sram_id_bits
+
+    print "total tcam bits", tcam_size, tcam_size/1024., "Kbits", tcam_size/(1024*1024.), "Mbits"
+    print "total sram bits", sram_size, sram_size/1024., "Kbits", sram_size/(1024*1024.), "Mbits"
+    return tcam_size, sram_size
+
+
 
 
 
@@ -326,6 +355,11 @@ def multi_pdd_split(pc, d, tcam_raw, limit):
     print "Multi Split TCAM:", tcam_entries
     print "original rules" , original
     print "compression: ", float(tcam_entries)/(4*tcam_raw)
+    tcam_size, sram_size = pdd_tcam_size(tcam)
+
+    print "real compression: ", float(tcam_size)/(tcam_raw * 144)
+
+
     return tcam
 
 
